@@ -93,7 +93,21 @@ class StatsResponse(BaseModel):
     total_carriers: int
     total_inspections: int
     total_violations: int
+    total_safety_scores: int
+    scored_carriers: int
+    carriers_with_alerts: int
     states: int
+
+
+class StateCount(BaseModel):
+    state: str
+    count: int
+
+
+class UpdatesResponse(BaseModel):
+    new_carriers_this_week: int | None = None
+    inspections_month: str | None = None
+    inspections_last_month: int = 0
 
 
 class ScrapingStartRequest(BaseModel):

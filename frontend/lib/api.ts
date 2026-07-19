@@ -81,7 +81,21 @@ export interface Stats {
   total_carriers: number;
   total_inspections: number;
   total_violations: number;
+  total_safety_scores: number;
+  scored_carriers: number;
+  carriers_with_alerts: number;
   states: number;
+}
+
+export interface StateCount {
+  state: string;
+  count: number;
+}
+
+export interface Updates {
+  new_carriers_this_week: number | null;
+  inspections_month: string | null;
+  inspections_last_month: number;
 }
 
 async function fetchJson<T>(path: string, revalidate = 3600): Promise<T | null> {
@@ -116,6 +130,14 @@ export function getTopCarriers(limit: number): Promise<CarrierSummary[] | null> 
 
 export function getStats(): Promise<Stats | null> {
   return fetchJson<Stats>("/api/carriers/stats", 3600);
+}
+
+export function getStateCounts(): Promise<StateCount[] | null> {
+  return fetchJson<StateCount[]>("/api/carriers/by-state", 3600);
+}
+
+export function getUpdates(): Promise<Updates | null> {
+  return fetchJson<Updates>("/api/carriers/updates", 3600);
 }
 
 export async function getCarrierCount(): Promise<number> {

@@ -12,23 +12,46 @@ from app.schemas import (
     CarrierSafetyResponse,
     CarrierSummary,
     MonthlyCount,
+    StateCount,
     StatsResponse,
+    UpdatesResponse,
 )
 from app.services.slugs import usdot_from_slug
 
 router = APIRouter(prefix="/api/carriers", tags=["carriers"])
 
+US_STATE_CODES = [
+    "AL", "AK", "AZ", "AR", "CA", "CO", "CT", "DE", "DC", "FL", "GA", "HI", "ID",
+    "IL", "IN", "IA", "KS", "KY", "LA", "ME", "MD", "MA", "MI", "MN", "MS", "MO",
+    "MT", "NE", "NV", "NH", "NJ", "NM", "NY", "NC", "ND", "OH", "OK", "OR", "PA",
+    "PR", "RI", "SC", "SD", "TN", "TX", "UT", "VT", "VA", "WA", "WV", "WI", "WY",
+]
+
 # Counts over millions of rows are expensive; refresh at most hourly.
-_stats_cache: dict[str, object] = {"at": 0.0, "data": None}
+_hourly_cache: dict[str, tuple[float, object]] = {}
+
+
+def _cached(key: str):
+    import time
+
+    entry = _hourly_cache.get(key)
+    if entry and time.time() - entry[0] < 3600:
+        return entry[1]
+    return None
+
+
+def _store(key: str, value: object) -> None:
+    import time
+
+    _hourly_cache[key] = (time.time(), value)
 
 
 @router.get("/stats", response_model=StatsResponse)
 def stats(db: Session = Depends(get_db)) -> StatsResponse:
-    import time
-
-    if _stats_cache["data"] is not None and time.time() - float(_stats_cache["at"]) < 3600:
-        return _stats_cache["data"]  # type: ignore[return-value]
-    from app.models import Inspection, Violation
+    cached = _cached("stats")
+    if cached is not None:
+        return cached  # type: ignore[return-value]
+    from app.models import Inspection, SafetyScore, Violation
 
     data = StatsResponse(
         total_carriers=db.scalar(
@@ -36,12 +59,88 @@ def stats(db: Session = Depends(get_db)) -> StatsResponse:
         ) or 0,
         total_inspections=db.scalar(select(func.count()).select_from(Inspection)) or 0,
         total_violations=db.scalar(select(func.count()).select_from(Violation)) or 0,
+        total_safety_scores=db.scalar(select(func.count()).select_from(SafetyScore)) or 0,
+        scored_carriers=db.scalar(
+            select(func.count(func.distinct(SafetyScore.carrier_id)))
+        ) or 0,
+        carriers_with_alerts=db.scalar(
+            select(func.count(func.distinct(SafetyScore.carrier_id))).where(
+                SafetyScore.alert_status == "alert"
+            )
+        ) or 0,
         states=db.scalar(
-            select(func.count(func.distinct(Carrier.state))).where(Carrier.state.is_not(None))
+            select(func.count(func.distinct(Carrier.state))).where(
+                Carrier.state.in_(US_STATE_CODES)
+            )
         ) or 0,
     )
-    _stats_cache["data"] = data
-    _stats_cache["at"] = time.time()
+    _store("stats", data)
+    return data
+
+
+@router.get("/by-state", response_model=list[StateCount])
+def carriers_by_state(db: Session = Depends(get_db)) -> list[StateCount]:
+    cached = _cached("by_state")
+    if cached is not None:
+        return cached  # type: ignore[return-value]
+    rows = db.execute(
+        select(Carrier.state, func.count())
+        .where(Carrier.is_active.is_(True), Carrier.state.in_(US_STATE_CODES))
+        .group_by(Carrier.state)
+        .order_by(func.count().desc())
+    ).all()
+    data = [StateCount(state=s, count=c) for s, c in rows]
+    _store("by_state", data)
+    return data
+
+
+@router.get("/updates", response_model=UpdatesResponse)
+def latest_updates(db: Session = Depends(get_db)) -> UpdatesResponse:
+    cached = _cached("updates")
+    if cached is not None:
+        return cached  # type: ignore[return-value]
+    from datetime import date, timedelta
+
+    import httpx
+
+    from app.models import Inspection
+    from sqlalchemy import String, cast
+
+    new_this_week: int | None = None
+    week_ago = (date.today() - timedelta(days=7)).strftime("%Y%m%d")
+    try:
+        resp = httpx.get(
+            "https://data.transportation.gov/resource/az4n-8mr2.json",
+            params={
+                "$select": "count(dot_number)",
+                "$where": f"add_date >= '{week_ago}' AND status_code = 'A'",
+            },
+            timeout=10,
+        )
+        resp.raise_for_status()
+        new_this_week = int(resp.json()[0]["count_dot_number"])
+    except Exception:  # noqa: BLE001 - stat is best-effort
+        new_this_week = None
+
+    month_col = func.substr(cast(Inspection.inspection_date, String), 1, 7)
+    latest = db.execute(
+        select(month_col, func.count())
+        .where(Inspection.inspection_date.is_not(None))
+        .group_by(month_col)
+        .order_by(month_col.desc())
+        .limit(2)
+    ).all()
+    # The newest month in the file may be partial; take the fuller of the two.
+    month, count = (None, 0)
+    if latest:
+        month, count = max(latest, key=lambda r: r[1])
+
+    data = UpdatesResponse(
+        new_carriers_this_week=new_this_week,
+        inspections_month=month,
+        inspections_last_month=count,
+    )
+    _store("updates", data)
     return data
 
 

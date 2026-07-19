@@ -89,13 +89,23 @@ def test_safety_endpoint_empty(client: TestClient, db: Session) -> None:
 
 def test_stats_endpoint(client: TestClient, db: Session) -> None:
     seed(db)
-    from app.routers.carriers import _stats_cache
+    from app.routers.carriers import _hourly_cache
 
-    _stats_cache["data"] = None
+    _hourly_cache.clear()
     data = client.get("/api/carriers/stats").json()
     assert data["total_carriers"] == 3
     assert data["states"] == 2
-    _stats_cache["data"] = None
+    _hourly_cache.clear()
+
+
+def test_by_state_counts(client: TestClient, db: Session) -> None:
+    seed(db)
+    from app.routers.carriers import _hourly_cache
+
+    _hourly_cache.clear()
+    data = client.get("/api/carriers/by-state").json()
+    assert data[0] == {"state": "TX", "count": 2}
+    _hourly_cache.clear()
 
 
 def test_safety_includes_totals_and_monthly(client: TestClient, db: Session) -> None:
