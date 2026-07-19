@@ -148,11 +148,11 @@ export default async function CarrierPage({ params }: CarrierPageProps) {
       />
 
       <nav className="text-sm text-slate-500">
-        <Link href="/" className="hover:text-sky-700">Home</Link>
+        <Link href="/" className="hover:text-red-600">Home</Link>
         {carrier.state && (
           <>
             {" / "}
-            <Link href={`/state/${carrier.state.toLowerCase()}`} className="hover:text-sky-700">
+            <Link href={`/state/${carrier.state.toLowerCase()}`} className="hover:text-red-600">
               {carrier.state}
             </Link>
           </>

@@ -24,7 +24,7 @@ export default function ShareActions({ title }: { title: string }) {
     <button
       type="button"
       onClick={share}
-      className="rounded-lg border bg-white px-3 py-1.5 text-sm font-medium text-slate-600 hover:border-sky-500 hover:text-sky-700"
+      className="rounded-lg border bg-white px-3 py-1.5 text-sm font-medium text-slate-600 hover:border-red-600 hover:text-red-600"
     >
       {copied ? "✓ Link copied" : "📤 Share"}
     </button>

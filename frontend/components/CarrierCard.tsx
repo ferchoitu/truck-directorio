@@ -11,7 +11,7 @@ export default function CarrierCard({ carrier }: { carrier: CarrierSummary }) {
     >
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h3 className="font-semibold text-sky-700">{name}</h3>
+          <h3 className="font-semibold text-red-700">{name}</h3>
           {carrier.dba_name && (
             <p className="text-sm text-slate-500">DBA: {carrier.dba_name}</p>
           )}

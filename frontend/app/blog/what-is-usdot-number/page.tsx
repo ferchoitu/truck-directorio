@@ -56,9 +56,9 @@ export default function Article() {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
       <nav className="text-sm text-slate-500">
-        <Link href="/" className="hover:text-sky-700">Home</Link>
+        <Link href="/" className="hover:text-red-600">Home</Link>
         {" / "}
-        <Link href="/blog" className="hover:text-sky-700">Blog</Link>
+        <Link href="/blog" className="hover:text-red-600">Blog</Link>
         {" / "}
         <span>What is a USDOT number?</span>
       </nav>
@@ -121,7 +121,7 @@ export default function Article() {
         </p>
         <Link
           href="/search"
-          className="mt-3 inline-block rounded-lg bg-sky-700 px-4 py-2 text-sm font-semibold text-white hover:bg-sky-800"
+          className="mt-3 inline-block rounded-lg bg-zinc-900 px-4 py-2 text-sm font-semibold text-white hover:bg-zinc-700"
         >
           Search the directory
         </Link>
