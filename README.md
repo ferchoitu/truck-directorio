@@ -59,6 +59,21 @@ GET  /api/scraping/jobs/{id}
 POST /api/webhooks/apify            Apify completion callback (?secret=&job_id=)
 ```
 
+### Apify connection
+
+1. Get your API token at https://console.apify.com/settings/integrations and set `APIFY_TOKEN` in `backend/.env` (already created with a generated `APIFY_WEBHOOK_SECRET`).
+2. Verify the connection: `python -m app.check_apify` — checks the token, access to the three actors, and webhook config.
+
+Actor run inputs (verified against each actor's published input schema, see `app/services/run_input.py`):
+
+| Actor | Input |
+|---|---|
+| `jungle_synthesizer/fmcsa-dot-crawler` (main) | `dot_start`, `max_results`, `is_premium_mode` |
+| `parseforge/fmcsa-carrier-safety-scraper` (safety) | `dotNumbers[]`, `maxItems` |
+| `curative_blanket/fmcsa-new-carrier-feed` (new) | `daysBack`, `incremental`, `maxResults` |
+
+Note: `is_premium_mode` on the main actor unlocks emails, crash history, and safety ratings — it's pay-per-event, so it costs more. `POST /api/scraping/start` takes `premium: true` to enable it per job.
+
 ### Scraping flow
 
 1. `POST /api/scraping/start` creates a `scraping_jobs` row and launches the Apify actor with a completion webhook pointing at `{PUBLIC_BASE_URL}/api/webhooks/apify?secret=...&job_id=...`.
