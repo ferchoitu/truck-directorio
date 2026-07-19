@@ -87,6 +87,15 @@ def test_safety_endpoint_empty(client: TestClient, db: Session) -> None:
     assert data["safety_scores"] == []
 
 
+def test_carrier_slugs_for_sitemap(client: TestClient, db: Session) -> None:
+    seed(db)
+    slugs = client.get("/api/carriers/slugs", params={"per_page": 2, "page": 0}).json()
+    assert len(slugs) == 2
+    assert all(s.endswith(("-usdot-100001", "-usdot-100002")) for s in slugs)
+    page2 = client.get("/api/carriers/slugs", params={"per_page": 2, "page": 1}).json()
+    assert len(page2) == 1
+
+
 def test_webhook_rejects_bad_secret(client: TestClient) -> None:
     resp = client.post(
         "/api/webhooks/apify",

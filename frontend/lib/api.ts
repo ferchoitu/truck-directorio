@@ -98,3 +98,12 @@ export function getCarrierSafety(usdot: string): Promise<CarrierSafety | null> {
 export function getTopCarriers(limit: number): Promise<CarrierSummary[] | null> {
   return fetchJson<CarrierSummary[]>(`/api/carriers/top?limit=${limit}`, 86400);
 }
+
+export async function getCarrierCount(): Promise<number> {
+  const data = await fetchJson<CarrierListResponse>("/api/carriers?per_page=1", 86400);
+  return data?.total ?? 0;
+}
+
+export function getCarrierSlugs(page: number, perPage: number): Promise<string[] | null> {
+  return fetchJson<string[]>(`/api/carriers/slugs?page=${page}&per_page=${perPage}`, 86400);
+}

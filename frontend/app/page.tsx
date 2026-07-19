@@ -1,4 +1,6 @@
+import Link from "next/link";
 import SearchBar from "@/components/SearchBar";
+import { STATES } from "@/lib/states";
 
 export default function HomePage() {
   return (
@@ -16,7 +18,7 @@ export default function HomePage() {
       </div>
       <dl className="mt-16 grid grid-cols-1 gap-8 sm:grid-cols-3">
         {[
-          ["700,000+", "Registered carriers"],
+          ["2.2M+", "Active carriers"],
           ["Updated weekly", "Fresh FMCSA data"],
           ["100% free", "Carrier lookups"],
         ].map(([stat, label]) => (
@@ -26,6 +28,20 @@ export default function HomePage() {
           </div>
         ))}
       </dl>
+      <section className="mt-16 w-full max-w-4xl text-left">
+        <h2 className="text-lg font-semibold">Browse carriers by state</h2>
+        <div className="mt-3 flex flex-wrap gap-2">
+          {STATES.map((s) => (
+            <Link
+              key={s.code}
+              href={`/state/${s.code.toLowerCase()}`}
+              className="rounded-full border bg-white px-3 py-1 text-sm text-slate-600 hover:border-blue-500 hover:text-blue-700"
+            >
+              {s.name}
+            </Link>
+          ))}
+        </div>
+      </section>
     </div>
   );
 }

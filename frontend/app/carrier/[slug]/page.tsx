@@ -124,8 +124,33 @@ export default async function CarrierPage({ params }: CarrierPageProps) {
   const safety = await getCarrierSafety(carrier.usdot_number);
   const name = carrier.legal_name ?? `USDOT ${carrier.usdot_number}`;
 
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    name,
+    ...(carrier.dba_name ? { alternateName: carrier.dba_name } : {}),
+    identifier: `USDOT ${carrier.usdot_number}`,
+    ...(carrier.phone ? { telephone: carrier.phone } : {}),
+    ...(carrier.address || carrier.city
+      ? {
+          address: {
+            "@type": "PostalAddress",
+            ...(carrier.address ? { streetAddress: carrier.address } : {}),
+            ...(carrier.city ? { addressLocality: carrier.city } : {}),
+            ...(carrier.state ? { addressRegion: carrier.state } : {}),
+            ...(carrier.zip ? { postalCode: carrier.zip } : {}),
+            addressCountry: "US",
+          },
+        }
+      : {}),
+  };
+
   return (
     <article>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
       <header className="rounded-lg border bg-white p-6">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>

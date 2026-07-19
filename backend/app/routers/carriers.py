@@ -90,6 +90,23 @@ def top_carriers(
     return [CarrierSummary.model_validate(row) for row in rows]
 
 
+@router.get("/slugs", response_model=list[str])
+def carrier_slugs(
+    page: int = Query(0, ge=0),
+    per_page: int = Query(50_000, ge=1, le=50_000),
+    db: Session = Depends(get_db),
+) -> list[str]:
+    """Slug pages for sitemap generation, ordered by id for stable chunking."""
+    rows = db.scalars(
+        select(Carrier.slug)
+        .where(Carrier.is_active.is_(True), Carrier.slug.is_not(None))
+        .order_by(Carrier.id)
+        .offset(page * per_page)
+        .limit(per_page)
+    ).all()
+    return [slug for slug in rows if slug]
+
+
 @router.get("/by-slug/{slug}", response_model=CarrierDetail)
 def get_carrier_by_slug(slug: str, db: Session = Depends(get_db)) -> CarrierDetail:
     carrier = db.scalar(select(Carrier).where(Carrier.slug == slug))
