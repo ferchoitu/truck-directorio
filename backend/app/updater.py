@@ -57,25 +57,48 @@ def census_record_to_ingest(rec: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def _socrata_headers() -> dict[str, str]:
+    import os
+
+    headers = {"User-Agent": "CarrierCheck/1.0 (+https://truck-directorio.vercel.app)"}
+    token = os.environ.get("SOCRATA_APP_TOKEN", "")
+    if token:
+        headers["X-App-Token"] = token
+    return headers
+
+
 async def fetch_new_carriers(since: date) -> list[dict[str, Any]]:
     records: list[dict[str, Any]] = []
     offset = 0
-    async with httpx.AsyncClient(timeout=60) as client:
+    async with httpx.AsyncClient(timeout=60, headers=_socrata_headers()) as client:
         while True:
-            resp = await client.get(
-                CENSUS_URL,
-                params={
-                    "$select": FIELDS,
-                    "$where": (
-                        f"add_date >= '{since.strftime('%Y%m%d')}' AND status_code = 'A'"
-                    ),
-                    "$order": "dot_number",
-                    "$limit": PAGE_SIZE,
-                    "$offset": offset,
-                },
-            )
-            resp.raise_for_status()
-            page = resp.json()
+            page: list[dict[str, Any]] | None = None
+            last_exc: Exception | None = None
+            # Anonymous Socrata access gets throttled in bursts (403/429);
+            # back off hard before giving up.
+            for attempt in range(5):
+                try:
+                    resp = await client.get(
+                        CENSUS_URL,
+                        params={
+                            "$select": FIELDS,
+                            "$where": (
+                                f"add_date >= '{since.strftime('%Y%m%d')}' "
+                                "AND status_code = 'A'"
+                            ),
+                            "$order": "dot_number",
+                            "$limit": PAGE_SIZE,
+                            "$offset": offset,
+                        },
+                    )
+                    resp.raise_for_status()
+                    page = resp.json()
+                    break
+                except (httpx.HTTPError, ValueError) as exc:
+                    last_exc = exc
+                    await asyncio.sleep(30 * (attempt + 1))
+            if page is None:
+                raise RuntimeError(f"Socrata fetch failed after retries: {last_exc}")
             records.extend(page)
             if len(page) < PAGE_SIZE:
                 return records
