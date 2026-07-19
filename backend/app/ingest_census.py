@@ -112,6 +112,31 @@ def _row(rec: dict[str, str]) -> tuple | None:
     )
 
 
+def _copy_page(rows: list[tuple]) -> None:
+    """COPY one page on a fresh connection; the Railway proxy kills long-lived ones."""
+    last_exc: Exception | None = None
+    for attempt in range(3):
+        raw = engine.raw_connection()
+        try:
+            cur = raw.cursor()
+            with cur.copy(
+                "COPY census_staging (usdot_number, legal_name, address, city, state, "
+                "zip, phone, operation_type, carrier_classification, total_vehicles, "
+                "slug, is_active) FROM STDIN"
+            ) as copy:
+                for row in rows:
+                    copy.write_row(row)
+            raw.commit()
+            return
+        except Exception as exc:  # noqa: BLE001 - retry transient connection drops
+            last_exc = exc
+            print(f"  copy retry {attempt + 1}/3: {str(exc)[:120]}", flush=True)
+            time.sleep(5 * (attempt + 1))
+        finally:
+            raw.close()
+    raise RuntimeError(f"COPY failed after retries: {last_exc}")
+
+
 def fetch_page(client: httpx.Client, last_dot: str, active_only: bool) -> list[dict[str, str]]:
     where = f"dot_number > '{last_dot}'"
     if active_only:
@@ -143,46 +168,45 @@ def main() -> int:
     parser.add_argument(
         "--include-inactive", action="store_true", help="also ingest status_code != A"
     )
+    parser.add_argument(
+        "--resume", action="store_true", help="continue from max DOT already in staging"
+    )
     args = parser.parse_args()
 
     started = time.time()
+    last_dot = "0"
     with engine.connect() as conn:
         conn.execute(text(STAGING_DDL))
-        conn.execute(text("TRUNCATE census_staging"))
+        if args.resume:
+            max_dot = conn.execute(
+                text("SELECT max(usdot_number::bigint) FROM census_staging")
+            ).scalar()
+            if max_dot is not None:
+                last_dot = str(max_dot)
+                print(f"resuming after DOT {last_dot}", flush=True)
+        else:
+            conn.execute(text("TRUNCATE census_staging"))
         conn.commit()
 
-    raw = engine.raw_connection()
     total = 0
-    last_dot = "0"
     page_num = 0
-    try:
-        with httpx.Client() as client:
-            while True:
-                page = fetch_page(client, last_dot, not args.include_inactive)
-                if not page:
-                    break
-                page_num += 1
-                rows = [r for r in (_row(rec) for rec in page) if r is not None]
-                cur = raw.cursor()
-                with cur.copy(
-                    "COPY census_staging (usdot_number, legal_name, address, city, state, "
-                    "zip, phone, operation_type, carrier_classification, total_vehicles, "
-                    "slug, is_active) FROM STDIN"
-                ) as copy:
-                    for row in rows:
-                        copy.write_row(row)
-                raw.commit()
-                total += len(rows)
-                last_dot = page[-1]["dot_number"]
-                print(
-                    f"page {page_num}: +{len(rows)} rows (total {total:,}, "
-                    f"last DOT {last_dot}, {time.time() - started:.0f}s)",
-                    flush=True,
-                )
-                if len(page) < PAGE_SIZE or (args.pages and page_num >= args.pages):
-                    break
-    finally:
-        raw.close()
+    with httpx.Client() as client:
+        while True:
+            page = fetch_page(client, last_dot, not args.include_inactive)
+            if not page:
+                break
+            page_num += 1
+            rows = [r for r in (_row(rec) for rec in page) if r is not None]
+            _copy_page(rows)
+            total += len(rows)
+            last_dot = page[-1]["dot_number"]
+            print(
+                f"page {page_num}: +{len(rows)} rows (total {total:,}, "
+                f"last DOT {last_dot}, {time.time() - started:.0f}s)",
+                flush=True,
+            )
+            if len(page) < PAGE_SIZE or (args.pages and page_num >= args.pages):
+                break
 
     print("merging staging into carriers...", flush=True)
     with engine.connect() as conn:
