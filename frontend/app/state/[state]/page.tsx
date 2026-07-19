@@ -25,6 +25,8 @@ export function generateMetadata({ params }: StatePageProps): Metadata {
   };
 }
 
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+
 export default async function StatePage({ params, searchParams }: StatePageProps) {
   const info = stateByCode(params.state);
   if (!info) notFound();
@@ -36,8 +38,29 @@ export default async function StatePage({ params, searchParams }: StatePageProps
     per_page: "25",
   });
 
+  const jsonLd = results
+    ? {
+        "@context": "https://schema.org",
+        "@type": "ItemList",
+        name: `Trucking companies in ${info.name}`,
+        numberOfItems: results.total,
+        itemListElement: results.items.slice(0, 10).map((c, i) => ({
+          "@type": "ListItem",
+          position: (page - 1) * 25 + i + 1,
+          name: c.legal_name ?? `USDOT ${c.usdot_number}`,
+          url: c.slug ? `${SITE_URL}/carrier/${c.slug}` : undefined,
+        })),
+      }
+    : null;
+
   return (
     <div>
+      {jsonLd && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        />
+      )}
       <nav className="text-sm text-slate-500">
         <Link href="/" className="hover:text-blue-700">
           Home

@@ -10,7 +10,13 @@ export const metadata: Metadata = {
 };
 
 interface SearchPageProps {
-  searchParams: { q?: string; state?: string; page?: string };
+  searchParams: {
+    q?: string;
+    state?: string;
+    operation_type?: string;
+    safety_rating?: string;
+    page?: string;
+  };
 }
 
 export default async function SearchPage({ searchParams }: SearchPageProps) {
@@ -19,9 +25,12 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
 
   const params: Record<string, string> = { page: String(page), per_page: "25" };
   if (q) params.q = q;
-  if (searchParams.state) params.state = searchParams.state;
+  for (const key of ["state", "operation_type", "safety_rating"] as const) {
+    if (searchParams[key]) params[key] = searchParams[key] as string;
+  }
 
-  const results = q || searchParams.state ? await searchCarriers(params) : null;
+  const hasFilters = Boolean(q || searchParams.state || searchParams.operation_type || searchParams.safety_rating);
+  const results = hasFilters ? await searchCarriers(params) : null;
 
   return (
     <div>
@@ -30,7 +39,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
         <SearchBar defaultValue={q} />
       </div>
 
-      {results === null && (q || searchParams.state) && (
+      {results === null && hasFilters && (
         <p className="mt-8 text-slate-600">
           Search is temporarily unavailable. Please try again in a moment.
         </p>

@@ -61,12 +61,27 @@ export interface Violation {
   severity_weight: number | null;
 }
 
+export interface MonthlyCount {
+  month: string;
+  count: number;
+}
+
 export interface CarrierSafety {
   usdot_number: string;
   safety_rating: string | null;
   safety_scores: SafetyScore[];
   inspections: Inspection[];
   violations: Violation[];
+  inspections_total: number;
+  violations_total: number;
+  inspections_monthly: MonthlyCount[];
+}
+
+export interface Stats {
+  total_carriers: number;
+  total_inspections: number;
+  total_violations: number;
+  states: number;
 }
 
 async function fetchJson<T>(path: string, revalidate = 3600): Promise<T | null> {
@@ -97,6 +112,10 @@ export function getCarrierSafety(usdot: string): Promise<CarrierSafety | null> {
 
 export function getTopCarriers(limit: number): Promise<CarrierSummary[] | null> {
   return fetchJson<CarrierSummary[]>(`/api/carriers/top?limit=${limit}`, 86400);
+}
+
+export function getStats(): Promise<Stats | null> {
+  return fetchJson<Stats>("/api/carriers/stats", 3600);
 }
 
 export async function getCarrierCount(): Promise<number> {

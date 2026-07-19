@@ -73,12 +73,27 @@ class ViolationOut(BaseModel):
     severity_weight: int | None = None
 
 
+class MonthlyCount(BaseModel):
+    month: str  # YYYY-MM
+    count: int
+
+
 class CarrierSafetyResponse(BaseModel):
     usdot_number: str
     safety_rating: str | None = None
     safety_scores: list[SafetyScoreOut]
     inspections: list[InspectionOut]
     violations: list[ViolationOut]
+    inspections_total: int = 0
+    violations_total: int = 0
+    inspections_monthly: list[MonthlyCount] = []
+
+
+class StatsResponse(BaseModel):
+    total_carriers: int
+    total_inspections: int
+    total_violations: int
+    states: int
 
 
 class ScrapingStartRequest(BaseModel):

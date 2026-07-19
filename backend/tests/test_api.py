@@ -87,6 +87,37 @@ def test_safety_endpoint_empty(client: TestClient, db: Session) -> None:
     assert data["safety_scores"] == []
 
 
+def test_stats_endpoint(client: TestClient, db: Session) -> None:
+    seed(db)
+    from app.routers.carriers import _stats_cache
+
+    _stats_cache["data"] = None
+    data = client.get("/api/carriers/stats").json()
+    assert data["total_carriers"] == 3
+    assert data["states"] == 2
+    _stats_cache["data"] = None
+
+
+def test_safety_includes_totals_and_monthly(client: TestClient, db: Session) -> None:
+    from datetime import date as d
+
+    from app.models import Inspection
+
+    seed(db)
+    carrier = db.query(Carrier).filter_by(usdot_number="100001").one()
+    db.add_all(
+        [
+            Inspection(carrier_id=carrier.id, inspection_date=d(2026, 5, 1)),
+            Inspection(carrier_id=carrier.id, inspection_date=d(2026, 5, 20)),
+            Inspection(carrier_id=carrier.id, inspection_date=d(2026, 6, 3)),
+        ]
+    )
+    db.commit()
+    data = client.get("/api/carriers/100001/safety").json()
+    assert data["inspections_total"] == 3
+    assert {"month": "2026-05", "count": 2} in data["inspections_monthly"]
+
+
 def test_carrier_slugs_for_sitemap(client: TestClient, db: Session) -> None:
     seed(db)
     slugs = client.get("/api/carriers/slugs", params={"per_page": 2, "page": 0}).json()

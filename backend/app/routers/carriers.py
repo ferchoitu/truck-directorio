@@ -11,10 +11,38 @@ from app.schemas import (
     CarrierListResponse,
     CarrierSafetyResponse,
     CarrierSummary,
+    MonthlyCount,
+    StatsResponse,
 )
 from app.services.slugs import usdot_from_slug
 
 router = APIRouter(prefix="/api/carriers", tags=["carriers"])
+
+# Counts over millions of rows are expensive; refresh at most hourly.
+_stats_cache: dict[str, object] = {"at": 0.0, "data": None}
+
+
+@router.get("/stats", response_model=StatsResponse)
+def stats(db: Session = Depends(get_db)) -> StatsResponse:
+    import time
+
+    if _stats_cache["data"] is not None and time.time() - float(_stats_cache["at"]) < 3600:
+        return _stats_cache["data"]  # type: ignore[return-value]
+    from app.models import Inspection, Violation
+
+    data = StatsResponse(
+        total_carriers=db.scalar(
+            select(func.count()).select_from(Carrier).where(Carrier.is_active.is_(True))
+        ) or 0,
+        total_inspections=db.scalar(select(func.count()).select_from(Inspection)) or 0,
+        total_violations=db.scalar(select(func.count()).select_from(Violation)) or 0,
+        states=db.scalar(
+            select(func.count(func.distinct(Carrier.state))).where(Carrier.state.is_not(None))
+        ) or 0,
+    )
+    _stats_cache["data"] = data
+    _stats_cache["at"] = time.time()
+    return data
 
 
 def _paginate(db: Session, query: Select, page: int, per_page: int) -> CarrierListResponse:
@@ -142,10 +170,29 @@ def get_carrier_safety(usdot: str, db: Session = Depends(get_db)) -> CarrierSafe
         .order_by(Violation.violation_date.desc().nulls_last())
         .limit(10)
     ).all()
+    inspections_total = db.scalar(
+        select(func.count()).select_from(Inspection).where(Inspection.carrier_id == carrier.id)
+    ) or 0
+    violations_total = db.scalar(
+        select(func.count()).select_from(Violation).where(Violation.carrier_id == carrier.id)
+    ) or 0
+    # substr(date::text, 1, 7) -> 'YYYY-MM'; portable across Postgres and SQLite
+    from sqlalchemy import String, cast
+
+    month = func.substr(cast(Inspection.inspection_date, String), 1, 7)
+    monthly = db.execute(
+        select(month, func.count())
+        .where(Inspection.carrier_id == carrier.id, Inspection.inspection_date.is_not(None))
+        .group_by(month)
+        .order_by(month)
+    ).all()
     return CarrierSafetyResponse(
         usdot_number=carrier.usdot_number,
         safety_rating=carrier.safety_rating,
         safety_scores=carrier.safety_scores,
         inspections=inspections,
         violations=violations,
+        inspections_total=inspections_total,
+        violations_total=violations_total,
+        inspections_monthly=[MonthlyCount(month=m, count=c) for m, c in monthly],
     )
