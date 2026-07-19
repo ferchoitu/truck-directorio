@@ -103,6 +103,92 @@ def test_ingest_rated_carrier_keeps_rating(db: Session) -> None:
     assert carrier is not None and carrier.safety_rating == "Satisfactory"
 
 
+# Real output shape of parseforge/fmcsa-carrier-safety-scraper (captured 2026-07-19)
+SAFER_SNAPSHOT = {
+    "legalName": "THE SHERIDAN GROUP",
+    "dotNumber": "3500009",
+    "operatingStatus": "ACTIVE",
+    "entityType": "CARRIER",
+    "physicalAddress": "2045 PONTIUS AVE             LOS ANGELES, CA   90025-5613",
+    "mcMxFfNumbers": [],
+    "dunsNumber": "11-828-5303",
+    "powerUnits": 4,
+    "drivers": 5,
+    "carrierOperation": ["Intrastate Only (Non-HM)"],
+    "usInspections": {
+        "vehicle": {
+            "inspections": 3,
+            "outOfService": 0,
+            "outOfServicePercent": "0%",
+            "nationalAverage": "22.26%",
+        },
+        "driver": {
+            "inspections": 3,
+            "outOfService": 1,
+            "outOfServicePercent": "33.3%",
+            "nationalAverage": "6.67%",
+        },
+        "hazmat": {
+            "inspections": 0,
+            "outOfService": 0,
+            "outOfServicePercent": "%",
+            "nationalAverage": "4.44%",
+        },
+    },
+    "safetyRating": None,
+    "latestUpdate": "07/16/2026",
+}
+
+SAFER_NOT_FOUND = {
+    "legalName": None,
+    "dotNumber": "3500005",
+    "operatingStatus": "NOT FOUND",
+    "error": "Record not found for 3500005",
+}
+
+
+def test_ingest_safer_snapshot(db: Session) -> None:
+    processed = ingest_dataset(db, [SAFER_SNAPSHOT], safety=True)
+    assert processed == 1
+
+    carrier = db.scalar(select(Carrier).where(Carrier.usdot_number == "3500009"))
+    assert carrier is not None
+    assert carrier.authority_status == "ACTIVE"
+    assert carrier.is_active is True
+    assert carrier.duns_number == "11-828-5303"
+
+    by_cat = {s.basic_category: s for s in carrier.safety_scores}
+    assert float(by_cat["Vehicle Out-of-Service %"].score) == 0.0
+    assert by_cat["Vehicle Out-of-Service %"].alert_status == "ok"
+    assert by_cat["Driver Out-of-Service %"].alert_status == "alert"  # 33.3 > 6.67
+    assert "Hazmat Out-of-Service %" not in by_cat  # zero inspections -> no row
+
+    assert len(carrier.inspections) == 2  # vehicle + driver summaries
+    vehicle = next(i for i in carrier.inspections if "Vehicle" in (i.inspection_type or ""))
+    assert vehicle.vehicles_inspected == 3
+
+
+def test_ingest_safer_snapshot_keeps_existing_address(db: Session) -> None:
+    ingest_dataset(db, [{**REAL_MAIN_RECORD, "DOT_num": "3500009"}], safety=False)
+    ingest_dataset(db, [SAFER_SNAPSHOT], safety=True)
+    carrier = db.scalar(select(Carrier).where(Carrier.usdot_number == "3500009"))
+    assert carrier is not None
+    assert carrier.address == "12640 DELTA ST"  # snapshot blob must not overwrite
+
+
+def test_ingest_safer_not_found_creates_no_stub(db: Session) -> None:
+    processed = ingest_dataset(db, [SAFER_NOT_FOUND], safety=True)
+    assert processed == 0
+    assert db.scalar(select(Carrier)) is None
+
+
+def test_ingest_safer_not_found_deactivates_existing(db: Session) -> None:
+    ingest_dataset(db, [{**REAL_MAIN_RECORD, "DOT_num": "3500005"}], safety=False)
+    ingest_dataset(db, [SAFER_NOT_FOUND], safety=True)
+    carrier = db.scalar(select(Carrier).where(Carrier.usdot_number == "3500005"))
+    assert carrier is not None and carrier.is_active is False
+
+
 def test_ingest_safety_dataset(db: Session) -> None:
     ingest_dataset(db, [MAIN_RECORD], safety=False)
     processed = ingest_dataset(db, [SAFETY_RECORD], safety=True)

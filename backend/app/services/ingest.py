@@ -100,7 +100,9 @@ def upsert_carrier(db: Session, record: dict[str, Any]) -> Carrier | None:
 
     fields: dict[str, Any] = {
         "mc_number": _as_str(
-            _first(_pick(record, "mc_number", "mcNumber", "mc_mx_ff_numbers", "mcMxFfNumber", "mc")),
+            _first(
+                _pick(record, "mc_number", "mcNumber", "mc_mx_ff_numbers", "mcMxFfNumbers", "mc")
+            ),
             20,
         ),
         "legal_name": legal_name,
@@ -139,8 +141,91 @@ def upsert_carrier(db: Session, record: dict[str, Any]) -> Carrier | None:
     return carrier
 
 
+def _as_percent(value: Any) -> float | None:
+    try:
+        return float(str(value).replace("%", "").strip())
+    except (TypeError, ValueError):
+        return None
+
+
+def _upsert_safer_snapshot(db: Session, record: dict[str, Any]) -> Carrier | None:
+    """Ingest a SAFER company snapshot from parseforge/fmcsa-carrier-safety-scraper.
+
+    This actor returns 24-month inspection summaries per category (not itemized
+    events), crash totals, and operating status — stored as summary rows.
+    """
+    # Snapshot addresses are one unparsed blob; never overwrite the clean
+    # address the main actor already gave us.
+    slim = {k: v for k, v in record.items() if k not in ("physicalAddress", "mailingAddress")}
+    carrier = upsert_carrier(db, slim)
+    if carrier is None:
+        return None
+    db.flush()
+
+    status = _as_str(record.get("operatingStatus"), 50)
+    if status:
+        carrier.authority_status = status
+        carrier.is_active = status.upper() == "ACTIVE"
+
+    measured = _as_date(record.get("latestUpdate"))
+    us_inspections = record.get("usInspections") or {}
+
+    carrier.safety_scores.clear()
+    carrier.inspections.clear()
+    for category, data in us_inspections.items():
+        if not isinstance(data, dict):
+            continue
+        total = _as_int(data.get("inspections")) or 0
+        oos = _as_int(data.get("outOfService")) or 0
+        oos_pct = _as_percent(data.get("outOfServicePercent"))
+        national = _as_percent(data.get("nationalAverage"))
+
+        if total > 0 and oos_pct is not None:
+            alert = None
+            if national is not None:
+                alert = "alert" if oos_pct > national else "ok"
+            carrier.safety_scores.append(
+                SafetyScore(
+                    basic_category=f"{category.title()} Out-of-Service %",
+                    score=oos_pct,
+                    percentile=round(oos_pct),
+                    alert_status=alert,
+                    measured_date=measured,
+                )
+            )
+        if total > 0:
+            carrier.inspections.append(
+                Inspection(
+                    inspection_date=measured,
+                    inspection_type=f"US {category.title()} (24-month summary)",
+                    vehicles_inspected=total if category == "vehicle" else None,
+                    drivers_inspected=total if category == "driver" else None,
+                    oos_vehicles=oos if category == "vehicle" else None,
+                    oos_drivers=oos if category == "driver" else None,
+                )
+            )
+    return carrier
+
+
 def upsert_safety_data(db: Session, record: dict[str, Any]) -> Carrier | None:
-    """Ingest a record from the safety actor: BASIC scores, inspections, violations."""
+    """Ingest a record from the safety actor."""
+    # SAFER "record not found": mark an existing carrier inactive, never create stubs.
+    status = str(record.get("operatingStatus") or "").upper()
+    if record.get("error") or status == "NOT FOUND":
+        usdot = _as_str(
+            _pick(record, "dotNumber", "DOT_num", "usdot_number", "usdotNumber", "usdot"), 20
+        )
+        if not usdot:
+            return None
+        carrier = db.scalar(select(Carrier).where(Carrier.usdot_number == usdot))
+        if carrier is not None:
+            carrier.is_active = False
+        return carrier
+
+    if "usInspections" in record:
+        return _upsert_safer_snapshot(db, record)
+
+    # Generic fallback: itemized basic scores / inspections / violations.
     carrier = upsert_carrier(db, record)
     if carrier is None:
         return None
