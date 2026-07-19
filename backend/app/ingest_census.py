@@ -18,10 +18,26 @@ import sys
 import time
 
 import httpx
-from sqlalchemy import text
+from sqlalchemy import create_engine, text
 
-from app.database import engine
+from app.config import get_settings
+from app.database import _normalize_url
 from app.services.slugs import carrier_slug
+
+# Aggressive TCP keepalives: the Railway proxy silently drops connections that
+# look idle (e.g. while the server runs a statement); without keepalives the
+# client blocks on recv() forever instead of erroring and retrying.
+engine = create_engine(
+    _normalize_url(get_settings().database_url),
+    pool_pre_ping=True,
+    connect_args={
+        "connect_timeout": 15,
+        "keepalives": 1,
+        "keepalives_idle": 15,
+        "keepalives_interval": 5,
+        "keepalives_count": 3,
+    },
+)
 
 DATASET_URL = "https://data.transportation.gov/resource/az4n-8mr2.json"
 PAGE_SIZE = 50_000
@@ -175,11 +191,14 @@ def main() -> int:
     parser.add_argument(
         "--merge-only", action="store_true", help="skip fetching; merge existing staging"
     )
+    parser.add_argument(
+        "--merge-from", type=int, default=None, help="resume merge at this DOT number"
+    )
     args = parser.parse_args()
 
     started = time.time()
     if args.merge_only:
-        merged = _merge(started)
+        merged = _merge(started, merge_from=args.merge_from)
         print(f"DONE: {merged:,} merged", flush=True)
         return 0
     last_dot = "0"
@@ -224,7 +243,7 @@ def main() -> int:
 CHUNK_SPAN = 200_000  # DOT-number span per merge statement, keeps each one short
 
 
-def _merge(started: float) -> int:
+def _merge(started: float, merge_from: int | None = None) -> int:
     """Merge staging into carriers in short chunked statements.
 
     One 2.2M-row statement runs for minutes with zero client traffic and the
@@ -241,7 +260,7 @@ def _merge(started: float) -> int:
         print("staging is empty, nothing to merge", flush=True)
         return 0
 
-    lo = lo_max[0]
+    lo = merge_from if merge_from is not None else lo_max[0]
     while lo <= lo_max[1]:
         hi = lo + CHUNK_SPAN
         for attempt in range(3):
