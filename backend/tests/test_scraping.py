@@ -57,7 +57,7 @@ def test_start_scraping_launches_apify_run(client: TestClient, db: Session) -> N
 
     sent = route.calls.last.request
     assert b'"dot_start":1000' in sent.content.replace(b" ", b"")
-    assert b"webhooks" in sent.content
+    assert "webhooks=" in str(sent.url)
 
     job = db.get(ScrapingJob, data["id"])
     assert job is not None and job.status == "running"

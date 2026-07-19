@@ -1,3 +1,5 @@
+import base64
+import json
 from typing import Any
 
 import httpx
@@ -43,11 +45,18 @@ class ApifyClient:
         return data
 
     def start_actor(self, actor: str, run_input: dict[str, Any], job_id: int) -> str:
-        """Start an actor run with a completion webhook. Returns the Apify run id."""
+        """Start an actor run with a completion webhook. Returns the Apify run id.
+
+        The webhooks list goes base64-encoded in the query string — the JSON body
+        is the actor input only and anything extra there is silently ignored.
+        """
+        webhooks_b64 = base64.b64encode(
+            json.dumps(self._webhooks_payload(job_id)).encode()
+        ).decode()
         resp = httpx.post(
             f"{APIFY_BASE}/acts/{_actor_path(actor)}/runs",
-            params={"token": self.token},
-            json={**run_input, "webhooks": self._webhooks_payload(job_id)},
+            params={"token": self.token, "webhooks": webhooks_b64},
+            json=run_input,
             timeout=30,
         )
         resp.raise_for_status()

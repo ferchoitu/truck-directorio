@@ -21,6 +21,27 @@ def _pick(record: dict[str, Any], *keys: str) -> Any:
     return None
 
 
+def _first(value: Any) -> Any:
+    """Unwrap single-value lists (e.g. carrier_operation: [\"Interstate\"])."""
+    if isinstance(value, list):
+        return value[0] if value else None
+    return value
+
+
+def _parse_full_address(raw: str) -> tuple[str | None, str | None, str | None, str | None]:
+    """Split 'STREET, CITY, ST, ZIP[, COUNTRY]' into (street, city, state, zip)."""
+    parts = [p.strip() for p in raw.split(",") if p.strip()]
+    if parts and parts[-1].upper() in ("US", "USA", "CA", "MX"):
+        parts = parts[:-1]
+    if len(parts) < 4:
+        return raw, None, None, None
+    street = ", ".join(parts[:-3])
+    city, state, zip_code = parts[-3], parts[-2], parts[-1]
+    if len(state) > 2 or not state.isalpha():
+        return raw, None, None, None
+    return street, city, state, zip_code
+
+
 def _as_int(value: Any) -> int | None:
     try:
         return int(str(value).replace(",", "").strip())
@@ -48,7 +69,9 @@ def _as_date(value: Any) -> date | None:
 
 
 def upsert_carrier(db: Session, record: dict[str, Any]) -> Carrier | None:
-    usdot = _as_str(_pick(record, "usdot_number", "usdotNumber", "dotNumber", "usdot", "dot"), 20)
+    usdot = _as_str(
+        _pick(record, "usdot_number", "usdotNumber", "dotNumber", "DOT_num", "usdot", "dot"), 20
+    )
     if not usdot or not usdot.isdigit():
         return None
 
@@ -59,23 +82,52 @@ def upsert_carrier(db: Session, record: dict[str, Any]) -> Carrier | None:
 
     legal_name = _as_str(_pick(record, "legal_name", "legalName", "name", "companyName"), 255)
 
+    # Address may come pre-split or as one string: "STREET, CITY, ST, ZIP, US"
+    street = _pick(record, "address", "street")
+    city = _pick(record, "city", "physicalCity")
+    state = _pick(record, "state", "physicalState", "stateCode")
+    zip_code = _pick(record, "zip", "zipCode", "physicalZip")
+    full = _pick(record, "physical_address", "physicalAddress")
+    if isinstance(full, str) and city is None:
+        street, city, state, zip_code = _parse_full_address(full)
+
+    # safety_rating can be a plain string or {"rating": ..., "rating_date": ...}
+    rating = _pick(record, "safety_rating", "safetyRating", "rating")
+    if isinstance(rating, dict):
+        rating = rating.get("rating")
+    if isinstance(rating, str) and rating.strip().lower() in ("no rating", "none", "not rated"):
+        rating = None
+
     fields: dict[str, Any] = {
-        "mc_number": _as_str(_pick(record, "mc_number", "mcNumber", "mcMxFfNumber", "mc"), 20),
+        "mc_number": _as_str(
+            _first(_pick(record, "mc_number", "mcNumber", "mc_mx_ff_numbers", "mcMxFfNumber", "mc")),
+            20,
+        ),
         "legal_name": legal_name,
         "dba_name": _as_str(_pick(record, "dba_name", "dbaName", "dba"), 255),
-        "address": _as_str(_pick(record, "address", "physicalAddress", "street"), 10_000),
-        "city": _as_str(_pick(record, "city", "physicalCity"), 100),
-        "state": _as_str(_pick(record, "state", "physicalState", "stateCode"), 10),
-        "zip": _as_str(_pick(record, "zip", "zipCode", "physicalZip"), 20),
+        "address": _as_str(street, 10_000),
+        "city": _as_str(city, 100),
+        "state": _as_str(state, 10),
+        "zip": _as_str(zip_code, 20),
         "phone": _as_str(_pick(record, "phone", "telephone", "phoneNumber"), 50),
         "email": _as_str(_pick(record, "email", "emailAddress"), 255),
-        "operation_type": _as_str(_pick(record, "operation_type", "operationType", "carrierOperation"), 100),
-        "carrier_classification": _as_str(_pick(record, "carrier_classification", "classification", "entityType"), 100),
-        "total_vehicles": _as_int(_pick(record, "total_vehicles", "powerUnits", "totalPowerUnits", "vehicles")),
+        "operation_type": _as_str(
+            _first(_pick(record, "operation_type", "operationType", "carrier_operation", "carrierOperation")),
+            100,
+        ),
+        "carrier_classification": _as_str(
+            _pick(record, "carrier_classification", "classification", "entity_type", "entityType"),
+            100,
+        ),
+        "total_vehicles": _as_int(
+            _pick(record, "total_vehicles", "power_units", "powerUnits", "totalPowerUnits", "vehicles")
+        ),
         "total_drivers": _as_int(_pick(record, "total_drivers", "totalDrivers", "drivers")),
-        "authority_status": _as_str(_pick(record, "authority_status", "authorityStatus", "operatingStatus", "status"), 50),
-        "safety_rating": _as_str(_pick(record, "safety_rating", "safetyRating", "rating"), 50),
-        "duns_number": _as_str(_pick(record, "duns_number", "dunsNumber", "duns"), 20),
+        "authority_status": _as_str(
+            _pick(record, "authority_status", "authorityStatus", "operatingStatus", "status"), 50
+        ),
+        "safety_rating": _as_str(rating, 50),
+        "duns_number": _as_str(_pick(record, "duns_number", "DUNS_num", "dunsNumber", "duns"), 20),
     }
     for attr, value in fields.items():
         if value is not None:
