@@ -9,14 +9,17 @@ from app.database import get_db
 from app.models import ScrapingJob
 from app.schemas import ScrapingJobOut, ScrapingStartRequest
 from app.services.apify import ApifyClient
+from app.services.run_input import build_run_input
 
 router = APIRouter(prefix="/api/scraping", tags=["scraping"])
 
 
 @router.post("/start", response_model=ScrapingJobOut, status_code=201)
 def start_scraping(body: ScrapingStartRequest, db: Session = Depends(get_db)) -> ScrapingJobOut:
-    if body.usdot_range_end < body.usdot_range_start:
-        raise HTTPException(status_code=422, detail="usdot_range_end must be >= usdot_range_start")
+    try:
+        run_input = build_run_input(body)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
 
     settings = get_settings()
     actor = {
@@ -34,13 +37,8 @@ def start_scraping(body: ScrapingStartRequest, db: Session = Depends(get_db)) ->
     db.add(job)
     db.commit()
 
-    usdot_numbers = [
-        str(n) for n in range(body.usdot_range_start, body.usdot_range_end + 1)
-    ]
     try:
-        run_id = ApifyClient().start_actor(
-            actor, {"usdotNumbers": usdot_numbers}, job_id=job.id
-        )
+        run_id = ApifyClient().start_actor(actor, run_input, job_id=job.id)
     except Exception as exc:  # noqa: BLE001 - persist failure reason on the job
         job.status = "failed"
         job.error_message = str(exc)[:2000]

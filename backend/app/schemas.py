@@ -82,11 +82,16 @@ class CarrierSafetyResponse(BaseModel):
 
 
 class ScrapingStartRequest(BaseModel):
-    usdot_range_start: int = Field(ge=1)
-    usdot_range_end: int = Field(ge=1)
     actor: str = Field(
         default="main", pattern="^(main|safety|new)$", description="Which Apify actor to run"
     )
+    # Required for actor=main|safety; ignored for actor=new.
+    usdot_range_start: int | None = Field(default=None, ge=1)
+    usdot_range_end: int | None = Field(default=None, ge=1)
+    # main actor only: premium data fields (emails, crash history, safety ratings).
+    premium: bool = False
+    # new actor only: how far back to look for newly added carriers.
+    days_back: int = Field(default=7, ge=1, le=90)
 
 
 class ScrapingJobOut(BaseModel):

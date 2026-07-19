@@ -12,7 +12,7 @@ class Settings(BaseSettings):
     apify_token: str = ""
     apify_actor_main: str = "jungle_synthesizer/fmcsa-dot-crawler"
     apify_actor_safety: str = "parseforge/fmcsa-carrier-safety-scraper"
-    apify_actor_new: str = "transparent_meteorite/fmcsa-new-carrier"
+    apify_actor_new: str = "curative_blanket/fmcsa-new-carrier-feed"
     apify_webhook_secret: str = ""
 
     # Public URL of this API, used to build the Apify webhook callback.

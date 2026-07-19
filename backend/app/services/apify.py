@@ -27,6 +27,21 @@ class ApifyClient:
             }
         ]
 
+    def get_user(self) -> dict[str, Any]:
+        """Validate the token by fetching the authenticated user's profile."""
+        resp = httpx.get(f"{APIFY_BASE}/users/me", params={"token": self.token}, timeout=30)
+        resp.raise_for_status()
+        data: dict[str, Any] = resp.json()["data"]
+        return data
+
+    def get_actor(self, actor: str) -> dict[str, Any]:
+        resp = httpx.get(
+            f"{APIFY_BASE}/acts/{_actor_path(actor)}", params={"token": self.token}, timeout=30
+        )
+        resp.raise_for_status()
+        data: dict[str, Any] = resp.json()["data"]
+        return data
+
     def start_actor(self, actor: str, run_input: dict[str, Any], job_id: int) -> str:
         """Start an actor run with a completion webhook. Returns the Apify run id."""
         resp = httpx.post(
