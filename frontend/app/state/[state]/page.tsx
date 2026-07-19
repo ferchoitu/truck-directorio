@@ -62,7 +62,7 @@ export default async function StatePage({ params, searchParams }: StatePageProps
         />
       )}
       <nav className="text-sm text-slate-500">
-        <Link href="/" className="hover:text-red-600">
+        <Link href="/" className="hover:text-zinc-900">
           Home
         </Link>
         {" / "}
@@ -84,7 +84,7 @@ export default async function StatePage({ params, searchParams }: StatePageProps
               {page > 1 && (
                 <Link
                   href={`/state/${params.state}?page=${page - 1}`}
-                  className="text-red-700 hover:underline"
+                  className="font-semibold text-zinc-900 hover:underline"
                 >
                   ← Previous
                 </Link>
@@ -95,7 +95,7 @@ export default async function StatePage({ params, searchParams }: StatePageProps
               {page < results.pages && (
                 <Link
                   href={`/state/${params.state}?page=${page + 1}`}
-                  className="text-red-700 hover:underline"
+                  className="font-semibold text-zinc-900 hover:underline"
                 >
                   Next →
                 </Link>
@@ -116,7 +116,7 @@ export default async function StatePage({ params, searchParams }: StatePageProps
             <Link
               key={s.code}
               href={`/state/${s.code.toLowerCase()}`}
-              className="rounded-full border bg-white px-3 py-1 text-sm text-slate-600 hover:border-red-600 hover:text-red-600"
+              className="rounded-full border bg-white px-3 py-1 text-sm text-slate-600 hover:border-lime-400 hover:text-zinc-900"
             >
               {s.name}
             </Link>

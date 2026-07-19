@@ -189,11 +189,11 @@ export default async function CarrierPage({ params }: CarrierPageProps) {
       />
 
       <nav className="text-sm text-zinc-500">
-        <Link href="/" className="hover:text-red-600">Home</Link>
+        <Link href="/" className="hover:text-zinc-900">Home</Link>
         {carrier.state && (
           <>
             {" / "}
-            <Link href={`/state/${carrier.state.toLowerCase()}`} className="hover:text-red-600">
+            <Link href={`/state/${carrier.state.toLowerCase()}`} className="hover:text-zinc-900">
               {stateName}
             </Link>
           </>
@@ -203,7 +203,7 @@ export default async function CarrierPage({ params }: CarrierPageProps) {
       </nav>
 
       {/* TITLE CARD */}
-      <header className="mt-3 rounded-sm border border-zinc-300 bg-white p-5 sm:p-6">
+      <header className="mt-3 rounded-2xl bg-white shadow-sm p-5 sm:p-6">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <h1 className="font-heading text-2xl font-semibold sm:text-3xl">{name}</h1>
@@ -227,7 +227,7 @@ export default async function CarrierPage({ params }: CarrierPageProps) {
             <a
               key={id}
               href={`#${id}`}
-              className="whitespace-nowrap font-mono font-bold uppercase tracking-wider text-zinc-500 hover:text-red-600"
+              className="whitespace-nowrap font-mono font-bold uppercase tracking-wider text-zinc-500 hover:text-zinc-900"
             >
               {label}
             </a>
@@ -236,20 +236,20 @@ export default async function CarrierPage({ params }: CarrierPageProps) {
       </header>
 
       {/* ATOMIC ANSWER */}
-      <section className="mt-4 rounded-sm border border-dashed border-zinc-300 bg-white p-5">
+      <section className="mt-4 rounded-2xl bg-white shadow-sm p-5">
         <h2 className="font-heading text-lg font-semibold">What is USDOT {usdot}?</h2>
         <p className="mt-2 text-sm leading-relaxed text-zinc-700">{answer}</p>
       </section>
 
       <div className="mt-4 grid gap-4 lg:grid-cols-2">
         {/* CONTACT */}
-        <section id="contact" className="scroll-mt-24 rounded-sm border border-dashed border-zinc-300 bg-white p-5">
+        <section id="contact" className="scroll-mt-24 rounded-2xl bg-white shadow-sm p-5">
           <SectionLabel>Contact information</SectionLabel>
-          <div className="mt-3 rounded-sm bg-stone-100 p-3 text-sm">
+          <div className="mt-3 rounded-xl bg-stone-100 p-3 text-sm">
             <p className="font-medium">This profile hasn&apos;t been claimed yet</p>
             <p className="mt-0.5 text-zinc-600">
               Is this your company?{" "}
-              <a href={`${CLAIM_CONTACT}${usdot}`} className="font-semibold text-red-700 underline decoration-2 underline-offset-2 hover:text-red-600">
+              <a href={`${CLAIM_CONTACT}${usdot}`} className="font-semibold text-lime-700 underline decoration-2 underline-offset-2 hover:text-lime-600">
                 Claim this profile
               </a>
             </p>
@@ -274,7 +274,7 @@ export default async function CarrierPage({ params }: CarrierPageProps) {
         </section>
 
         {/* REGISTRATION & AUTHORITY */}
-        <section id="registration" className="scroll-mt-24 rounded-sm border border-dashed border-zinc-300 bg-white p-5">
+        <section id="registration" className="scroll-mt-24 rounded-2xl bg-white shadow-sm p-5">
           <SectionLabel>Registration &amp; authority</SectionLabel>
           <dl className="mt-3">
             <Row label="USDOT number" value={usdot} />
@@ -318,16 +318,16 @@ export default async function CarrierPage({ params }: CarrierPageProps) {
             href={l.href}
             target="_blank"
             rel="noopener noreferrer"
-            className="group rounded-sm border border-dashed border-zinc-300 bg-white p-4 transition hover:border-solid hover:border-red-600"
+            className="group rounded-2xl bg-white shadow-sm p-4 transition hover:shadow-md"
           >
-            <p className="text-sm font-semibold group-hover:text-red-700">{l.title} ↗</p>
+            <p className="text-sm font-semibold group-hover:text-lime-700">{l.title} ↗</p>
             <p className="mt-1 text-xs text-zinc-500">{l.desc}</p>
           </a>
         ))}
       </section>
 
       {/* FLEET & DRIVERS */}
-      <section id="fleet" className="mt-4 scroll-mt-24 rounded-sm border border-dashed border-zinc-300 bg-white p-5">
+      <section id="fleet" className="mt-4 scroll-mt-24 rounded-2xl bg-white shadow-sm p-5">
         <SectionLabel>Fleet &amp; drivers</SectionLabel>
         <div className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-4">
           {[
@@ -350,10 +350,10 @@ export default async function CarrierPage({ params }: CarrierPageProps) {
 
       {/* SAFETY & COMPLIANCE */}
       <section id="safety" className="mt-4 scroll-mt-24">
-        <div className="rounded-sm border border-dashed border-zinc-300 bg-white p-5">
+        <div className="rounded-2xl bg-white shadow-sm p-5">
           <SectionLabel>Safety &amp; compliance</SectionLabel>
           {!carrier.safety_rating && (
-            <p className="mt-3 rounded-sm bg-stone-100 p-3 text-sm text-zinc-600">
+            <p className="mt-3 rounded-xl bg-stone-100 p-3 text-sm text-zinc-600">
               <span className="font-semibold text-zinc-800">Not Rated.</span> No FMCSA
               safety/compliance review has been conducted on this motor carrier — this is
               the case for most carriers and is not itself a warning sign.
@@ -362,7 +362,7 @@ export default async function CarrierPage({ params }: CarrierPageProps) {
           {safety && safety.safety_scores.length > 0 ? (
             <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {safety.safety_scores.map((score) => (
-                <div key={score.basic_category} className="rounded-sm border border-zinc-200 p-4">
+                <div key={score.basic_category} className="rounded-xl border border-zinc-100 p-4">
                   <div className="flex items-center justify-between gap-2">
                     <span className="text-sm font-medium">{score.basic_category}</span>
                     {score.alert_status === "alert" ? (
@@ -399,7 +399,7 @@ export default async function CarrierPage({ params }: CarrierPageProps) {
 
       {/* INSPECTIONS */}
       {safety && safety.inspections_total > 0 && (
-        <section id="inspections" className="mt-4 scroll-mt-24 rounded-sm border border-dashed border-zinc-300 bg-white p-5">
+        <section id="inspections" className="mt-4 scroll-mt-24 rounded-2xl bg-white shadow-sm p-5">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <SectionLabel>Inspections (24 months)</SectionLabel>
             <span className="font-mono text-xs text-zinc-500">
@@ -438,7 +438,7 @@ export default async function CarrierPage({ params }: CarrierPageProps) {
 
       {/* VIOLATIONS */}
       {safety && safety.violations.length > 0 && (
-        <section id="violations" className="mt-4 scroll-mt-24 rounded-sm border border-dashed border-zinc-300 bg-white p-5">
+        <section id="violations" className="mt-4 scroll-mt-24 rounded-2xl bg-white shadow-sm p-5">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <SectionLabel>Recent violations</SectionLabel>
             <span className="font-mono text-xs text-zinc-500">
@@ -466,7 +466,7 @@ export default async function CarrierPage({ params }: CarrierPageProps) {
 
       {/* SERVICE AREA */}
       {(carrier.city || carrier.operation_type) && (
-        <section className="mt-4 rounded-sm border border-dashed border-zinc-300 bg-white p-5">
+        <section className="mt-4 rounded-2xl bg-white shadow-sm p-5">
           <SectionLabel>Service area</SectionLabel>
           <dl className="mt-3">
             {carrier.city && (
@@ -491,7 +491,7 @@ export default async function CarrierPage({ params }: CarrierPageProps) {
         <SectionLabel>Frequently asked questions</SectionLabel>
         <div className="mt-3 grid gap-3">
           {faqs.map((f) => (
-            <details key={f.q} className="rounded-sm border border-dashed border-zinc-300 bg-white p-4">
+            <details key={f.q} className="rounded-2xl bg-white shadow-sm p-4">
               <summary className="font-heading cursor-pointer font-semibold">{f.q}</summary>
               <p className="mt-2 text-sm text-zinc-600">{f.a}</p>
             </details>

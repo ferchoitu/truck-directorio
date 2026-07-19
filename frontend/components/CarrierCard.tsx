@@ -7,7 +7,7 @@ export default function CarrierCard({ carrier }: { carrier: CarrierSummary }) {
   return (
     <Link
       href={carrier.slug ? `/carrier/${carrier.slug}` : "#"}
-      className="block rounded-lg border bg-white p-4 shadow-sm transition hover:shadow-md"
+      className="block rounded-2xl bg-white shadow-sm p-4 shadow-sm transition hover:shadow-md"
     >
       <div className="flex items-start justify-between gap-4">
         <div>

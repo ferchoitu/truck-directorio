@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import SectionLabel from "@/components/SectionLabel";
-import Stripe from "@/components/Stripe";
 
 export const metadata: Metadata = {
   title: "Carrier Data API — 2.2M FMCSA Carriers",
@@ -56,12 +55,20 @@ const TIERS = [
 
 export default function ApiAccessPage() {
   return (
-    <div className="-mx-4">
-      <section className="bg-zinc-950 px-4 py-14 text-white">
-        <div className="mx-auto max-w-6xl">
+    <div>
+      <section className="relative -mt-16 overflow-hidden rounded-3xl bg-zinc-950 px-5 pb-14 pt-28 text-white sm:px-10 sm:pt-32">
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0"
+          style={{
+            background:
+              "radial-gradient(55% 45% at 90% 0%, rgba(190,242,100,0.2), transparent 70%)",
+          }}
+        />
+        <div className="relative mx-auto max-w-6xl">
           <SectionLabel>Carrier data API</SectionLabel>
-          <h1 className="font-heading mt-3 max-w-3xl text-4xl font-semibold leading-tight sm:text-5xl">
-            Plug 2.2M carriers into your stack.
+          <h1 className="font-heading mt-4 max-w-3xl text-4xl font-medium leading-tight sm:text-5xl">
+            Plug 2.2M carriers <em className="italic text-lime-300">into your stack.</em>
           </h1>
           <p className="mt-4 max-w-2xl text-zinc-300">
             The same data behind CarrierCheck, over REST: FMCSA registrations, SMS BASIC
@@ -70,9 +77,8 @@ export default function ApiAccessPage() {
           </p>
         </div>
       </section>
-      <Stripe />
 
-      <div className="mx-auto max-w-6xl px-4">
+      <div className="mx-auto max-w-6xl">
         <section className="grid gap-8 py-12 lg:grid-cols-2">
           <div>
             <SectionLabel>What you get</SectionLabel>
@@ -86,7 +92,7 @@ export default function ApiAccessPage() {
                 "Daily new-carrier ingestion from the FMCSA census",
               ].map((f) => (
                 <li key={f} className="flex gap-2">
-                  <span className="font-mono font-bold text-red-600">→</span>
+                  <span className="font-bold text-lime-600">→</span>
                   {f}
                 </li>
               ))}
@@ -94,22 +100,22 @@ export default function ApiAccessPage() {
           </div>
           <div>
             <SectionLabel>One call away</SectionLabel>
-            <pre className="mt-4 overflow-x-auto rounded-sm bg-zinc-950 p-4 font-mono text-xs leading-relaxed text-zinc-100">
+            <pre className="mt-4 overflow-x-auto rounded-xl bg-zinc-950 p-4 font-mono text-xs leading-relaxed text-zinc-100">
               {EXAMPLE}
             </pre>
           </div>
         </section>
 
-        <section className="border-t border-dashed border-zinc-300 py-12">
+        <section className="border-t border-zinc-200 py-12">
           <SectionLabel>Plans</SectionLabel>
           <div className="mt-5 grid gap-4 sm:grid-cols-3">
             {TIERS.map((t) => (
               <div
                 key={t.name}
-                className={`rounded-sm border p-6 ${
+                className={`rounded-xl border p-6 ${
                   t.highlight
-                    ? "border-red-600 bg-white"
-                    : "border-dashed border-zinc-300 bg-white"
+                    ? "border-lime-400 bg-white shadow-md"
+                    : "border-zinc-200 bg-white"
                 }`}
               >
                 <p className="font-mono text-xs font-bold uppercase tracking-widest text-zinc-500">
@@ -119,7 +125,7 @@ export default function ApiAccessPage() {
                 <ul className="mt-4 grid gap-2 text-sm text-zinc-600">
                   {t.features.map((f) => (
                     <li key={f} className="flex gap-2">
-                      <span className="text-red-600">·</span>
+                      <span className="text-lime-600">·</span>
                       {f}
                     </li>
                   ))}
@@ -129,7 +135,7 @@ export default function ApiAccessPage() {
                   className={`mt-5 inline-block rounded-full px-5 py-2 text-sm font-semibold transition ${
                     t.highlight
                       ? "bg-zinc-900 text-white hover:bg-zinc-700"
-                      : "border border-zinc-300 text-zinc-700 hover:border-red-600 hover:text-red-600"
+                      : "border border-zinc-300 text-zinc-700 hover:border-zinc-400 hover:text-zinc-900"
                   }`}
                 >
                   {t.cta.label}

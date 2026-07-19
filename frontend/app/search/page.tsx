@@ -60,7 +60,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
               {page > 1 && (
                 <Link
                   href={`/search?${new URLSearchParams({ ...params, page: String(page - 1) })}`}
-                  className="text-red-700 hover:underline"
+                  className="font-semibold text-zinc-900 hover:underline"
                 >
                   ← Previous
                 </Link>
@@ -71,7 +71,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
               {page < results.pages && (
                 <Link
                   href={`/search?${new URLSearchParams({ ...params, page: String(page + 1) })}`}
-                  className="text-red-700 hover:underline"
+                  className="font-semibold text-zinc-900 hover:underline"
                 >
                   Next →
                 </Link>

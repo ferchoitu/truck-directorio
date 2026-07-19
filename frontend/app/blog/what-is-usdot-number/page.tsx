@@ -56,9 +56,9 @@ export default function Article() {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
       <nav className="text-sm text-slate-500">
-        <Link href="/" className="hover:text-red-600">Home</Link>
+        <Link href="/" className="hover:text-zinc-900">Home</Link>
         {" / "}
-        <Link href="/blog" className="hover:text-red-600">Blog</Link>
+        <Link href="/blog" className="hover:text-zinc-900">Blog</Link>
         {" / "}
         <span>What is a USDOT number?</span>
       </nav>
@@ -73,7 +73,7 @@ export default function Article() {
       </p>
 
       <h2 className="font-heading mt-8 text-xl font-semibold">USDOT vs MC vs MX numbers</h2>
-      <div className="mt-3 overflow-x-auto rounded-lg border bg-white">
+      <div className="mt-3 overflow-x-auto rounded-2xl bg-white shadow-sm">
         <table className="w-full text-left text-sm">
           <thead className="border-b bg-slate-50 text-slate-500">
             <tr>
@@ -114,14 +114,14 @@ export default function Article() {
         <li>Recorded violations with severity and out-of-service flags</li>
       </ol>
 
-      <div className="mt-8 rounded-lg border bg-white p-5">
+      <div className="mt-8 rounded-2xl bg-white shadow-sm p-5">
         <h2 className="font-heading text-lg font-semibold">Look up any carrier now</h2>
         <p className="mt-1 text-sm text-slate-600">
           Search 2.2M+ FMCSA-registered carriers by USDOT, MC, or company name — free.
         </p>
         <Link
           href="/search"
-          className="mt-3 inline-block rounded-lg bg-zinc-900 px-4 py-2 text-sm font-semibold text-white hover:bg-zinc-700"
+          className="mt-3 inline-block rounded-xl bg-zinc-900 px-4 py-2 text-sm font-semibold text-white hover:bg-zinc-700"
         >
           Search the directory
         </Link>
@@ -130,7 +130,7 @@ export default function Article() {
       <h2 className="font-heading mt-8 text-xl font-semibold">Frequently asked questions</h2>
       <div className="mt-3 grid gap-3">
         {FAQS.map((f) => (
-          <details key={f.q} className="rounded-lg border bg-white p-4">
+          <details key={f.q} className="rounded-2xl bg-white shadow-sm p-4">
             <summary className="cursor-pointer text-sm font-medium">{f.q}</summary>
             <p className="mt-2 text-sm text-slate-600">{f.a}</p>
           </details>
