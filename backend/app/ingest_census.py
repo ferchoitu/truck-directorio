@@ -113,6 +113,10 @@ def _row(rec: dict[str, str]) -> tuple | None:
         vehicles = int(rec["power_units"]) if rec.get("power_units") else None
     except ValueError:
         vehicles = None
+    # power_units is self-reported on form MCS-150 and contains typo garbage
+    # (e.g. 4.5M "vehicles"); the largest real US fleet is ~120k power units.
+    if vehicles is not None and vehicles > 150_000:
+        vehicles = None
     return (
         usdot,
         legal,
