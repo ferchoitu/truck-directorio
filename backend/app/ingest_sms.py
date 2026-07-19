@@ -364,13 +364,125 @@ MERGE = {
 TARGET_TABLE = {"inspections": "inspections", "violations": "violations"}
 
 
+def stream_violations(resume_file: str) -> int:
+    """Stage-less ingest: resolve carrier_id per page and COPY straight into
+    violations. Uses ~1GB less disk than the staging path; checkpoint file
+    makes it resumable."""
+    import os
+
+    last_id = ""
+    if os.path.exists(resume_file):
+        with open(resume_file) as fh:
+            last_id = fh.read().strip()
+        print(f"resuming after :id {last_id}", flush=True)
+    else:
+        with engine.connect() as conn:
+            conn.execute(text("TRUNCATE violations"))
+            conn.commit()
+        print("truncated violations", flush=True)
+
+    total = 0
+    page_num = 0
+    started = time.time()
+    with httpx.Client() as client:
+        while True:
+            params = {"$select": SELECTS["violations"], "$order": ":id", "$limit": PAGE_SIZE}
+            if last_id:
+                params["$where"] = f":id > '{last_id}'"
+            page = None
+            for attempt in range(5):
+                try:
+                    resp = client.get(
+                        f"{BASE}/{DATASETS['violations']}.json", params=params, timeout=180
+                    )
+                    resp.raise_for_status()
+                    page = resp.json()
+                    break
+                except (httpx.HTTPError, ValueError) as exc:
+                    print(f"  fetch retry {attempt + 1}/5: {str(exc)[:100]}", flush=True)
+                    time.sleep(10 * (attempt + 1))
+            if page is None:
+                raise RuntimeError("fetch failed after retries")
+            if not page:
+                break
+            page_num += 1
+
+            rows = [r for r in (_row_violations(rec) for rec in page) if r is not None]
+            dots = sorted({r[0] for r in rows})
+
+            last_exc: Exception | None = None
+            for attempt in range(3):
+                try:
+                    with engine.connect() as conn:
+                        id_map = dict(
+                            conn.execute(
+                                text(
+                                    "SELECT usdot_number, id FROM carriers "
+                                    "WHERE usdot_number = ANY(:dots)"
+                                ),
+                                {"dots": dots},
+                            ).all()
+                        )
+                        conn.commit()
+                    resolved = [
+                        (id_map[r[0]],) + r[1:] for r in rows if r[0] in id_map
+                    ]
+                    raw = engine.raw_connection()
+                    try:
+                        cur = raw.cursor()
+                        with cur.copy(
+                            "COPY violations (carrier_id, violation_code, "
+                            "violation_description, violation_date, oos_indicator, "
+                            "severity_weight) FROM STDIN"
+                        ) as copy:
+                            for row in resolved:
+                                copy.write_row(row)
+                        raw.commit()
+                    finally:
+                        raw.close()
+                    total += len(resolved)
+                    break
+                except Exception as exc:  # noqa: BLE001
+                    last_exc = exc
+                    print(f"  page retry {attempt + 1}/3: {str(exc)[:120]}", flush=True)
+                    time.sleep(5 * (attempt + 1))
+            else:
+                raise RuntimeError(f"page failed: {last_exc}")
+
+            last_id = page[-1][":id"]
+            with open(resume_file, "w") as fh:
+                fh.write(last_id)
+            print(
+                f"page {page_num}: +{len(rows)} ({total:,} insertadas, "
+                f"{time.time() - started:.0f}s)",
+                flush=True,
+            )
+            if len(page) < PAGE_SIZE:
+                break
+
+    import os as _os
+    _os.unlink(resume_file)
+    print(f"DONE violations (direct): {total:,} rows, {time.time() - started:.0f}s", flush=True)
+    return total
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("kind", choices=["basics", "inspections", "violations"])
     parser.add_argument("--resume", action="store_true")
     parser.add_argument("--pages", type=int, default=0)
     parser.add_argument("--merge-only", action="store_true")
+    parser.add_argument(
+        "--direct", action="store_true",
+        help="violations only: stream straight into the final table (no staging)",
+    )
     args = parser.parse_args()
+
+    if args.direct:
+        if args.kind != "violations":
+            parser.error("--direct only supports violations")
+        stream_violations("/tmp/sms_violations_checkpoint.txt")
+        return 0
 
     started = time.time()
     if not args.merge_only:
