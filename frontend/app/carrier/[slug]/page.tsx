@@ -40,23 +40,38 @@ function SafetySection({ safety }: { safety: CarrierSafety }) {
           <h2 className="text-lg font-semibold">BASIC scores</h2>
           <div className="mt-3 grid gap-2">
             {safety.safety_scores.map((score) => {
-              const pct = Math.min(100, Math.max(0, score.percentile ?? 0));
+              const pct = score.percentile !== null
+                ? Math.min(100, Math.max(0, score.percentile))
+                : null;
               return (
                 <div key={score.basic_category} className="rounded-lg border bg-white p-3">
                   <div className="flex justify-between text-sm">
-                    <span className="font-medium">{score.basic_category}</span>
+                    <span className="font-medium">
+                      {score.basic_category}
+                      {score.alert_status === "alert" && (
+                        <span className="ml-2 rounded bg-red-100 px-2 py-0.5 text-xs font-semibold text-red-800">
+                          ALERT
+                        </span>
+                      )}
+                    </span>
                     <span className="text-slate-500">
-                      {score.percentile !== null ? `${score.percentile}th percentile` : "—"}
+                      {pct !== null
+                        ? `${pct}th percentile`
+                        : score.score !== null
+                          ? `SMS measure: ${score.score}`
+                          : "—"}
                     </span>
                   </div>
-                  <div className="mt-2 h-2 rounded-full bg-slate-100">
-                    <div
-                      className={`h-2 rounded-full ${
-                        pct >= 75 ? "bg-red-500" : pct >= 50 ? "bg-yellow-500" : "bg-green-500"
-                      }`}
-                      style={{ width: `${pct}%` }}
-                    />
-                  </div>
+                  {pct !== null && (
+                    <div className="mt-2 h-2 rounded-full bg-slate-100">
+                      <div
+                        className={`h-2 rounded-full ${
+                          pct >= 75 ? "bg-red-500" : pct >= 50 ? "bg-yellow-500" : "bg-green-500"
+                        }`}
+                        style={{ width: `${pct}%` }}
+                      />
+                    </div>
+                  )}
                 </div>
               );
             })}
