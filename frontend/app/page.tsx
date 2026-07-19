@@ -248,7 +248,9 @@ export default async function HomePage() {
                   <div>
                     <div className="flex justify-between font-mono text-xs">
                       <span>1+ BASIC ALERT</span>
-                      <span className="font-bold text-red-600">{alertPct}%</span>
+                      <span className="font-bold text-red-600">
+                        {alertPct === 0 ? "<1" : alertPct}%
+                      </span>
                     </div>
                     <div className="mt-1 h-3 bg-zinc-100">
                       <div
