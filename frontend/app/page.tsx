@@ -297,19 +297,20 @@ export default async function HomePage() {
         {/* CTA ROW */}
         <section className="grid gap-4 border-t border-dashed border-zinc-300 py-12 sm:grid-cols-2">
           <div className="rounded-sm bg-zinc-950 p-6 text-white">
-            <SectionLabel>API access</SectionLabel>
+            <SectionLabel>Carrier data API</SectionLabel>
             <h3 className="font-heading mt-2 text-2xl font-semibold">
-              The whole directory, programmatic.
+              Plug 2.2M carriers into your stack.
             </h3>
             <p className="mt-2 text-sm text-zinc-300">
-              Query carriers, safety scores, and inspections from your own systems.
+              Registrations, safety scores, inspections and violations over REST — for
+              TMSs, brokers, insurtechs, and factoring platforms.
             </p>
-            <a
-              href={`${API_URL}/docs`}
+            <Link
+              href="/api-access"
               className="mt-4 inline-block rounded-full bg-white px-5 py-2 text-sm font-semibold text-zinc-900 transition hover:bg-zinc-200"
             >
-              Explore the API
-            </a>
+              See plans & pricing
+            </Link>
           </div>
           <div className="rounded-sm border border-dashed border-zinc-300 bg-white p-6">
             <SectionLabel>Safety alerts</SectionLabel>
