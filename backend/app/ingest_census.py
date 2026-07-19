@@ -63,6 +63,7 @@ SELECT DISTINCT ON (usdot_number)
     usdot_number, legal_name, address, city, state, zip, phone,
     operation_type, carrier_classification, total_vehicles, slug, is_active
 FROM census_staging
+WHERE usdot_number::bigint >= :lo AND usdot_number::bigint < :hi
 ON CONFLICT (usdot_number) DO UPDATE SET
     legal_name = COALESCE(EXCLUDED.legal_name, carriers.legal_name),
     address = COALESCE(EXCLUDED.address, carriers.address),
@@ -171,9 +172,16 @@ def main() -> int:
     parser.add_argument(
         "--resume", action="store_true", help="continue from max DOT already in staging"
     )
+    parser.add_argument(
+        "--merge-only", action="store_true", help="skip fetching; merge existing staging"
+    )
     args = parser.parse_args()
 
     started = time.time()
+    if args.merge_only:
+        merged = _merge(started)
+        print(f"DONE: {merged:,} merged", flush=True)
+        return 0
     last_dot = "0"
     with engine.connect() as conn:
         conn.execute(text(STAGING_DDL))
@@ -208,20 +216,58 @@ def main() -> int:
             if len(page) < PAGE_SIZE or (args.pages and page_num >= args.pages):
                 break
 
-    print("merging staging into carriers...", flush=True)
+    merged = _merge(started)
+    print(f"DONE: {total:,} staged this run, {merged:,} merged total", flush=True)
+    return 0
+
+
+CHUNK_SPAN = 200_000  # DOT-number span per merge statement, keeps each one short
+
+
+def _merge(started: float) -> int:
+    """Merge staging into carriers in short chunked statements.
+
+    One 2.2M-row statement runs for minutes with zero client traffic and the
+    Railway proxy kills the 'idle' connection — chunks keep each statement fast.
+    """
+    print("merging staging into carriers (chunked)...", flush=True)
+    merged = 0
     with engine.connect() as conn:
-        conn.execute(text("SET statement_timeout = '30min'"))
-        result = conn.execute(text(MERGE_SQL))
+        lo_max = conn.execute(
+            text("SELECT min(usdot_number::bigint), max(usdot_number::bigint) FROM census_staging")
+        ).one()
+        conn.commit()
+    if lo_max[0] is None:
+        print("staging is empty, nothing to merge", flush=True)
+        return 0
+
+    lo = lo_max[0]
+    while lo <= lo_max[1]:
+        hi = lo + CHUNK_SPAN
+        for attempt in range(3):
+            try:
+                with engine.connect() as conn:
+                    result = conn.execute(text(MERGE_SQL), {"lo": lo, "hi": hi})
+                    conn.commit()
+                merged += result.rowcount
+                break
+            except Exception as exc:  # noqa: BLE001 - retry transient connection drops
+                print(f"  merge retry {attempt + 1}/3 [{lo},{hi}): {str(exc)[:100]}", flush=True)
+                time.sleep(5 * (attempt + 1))
+        else:
+            raise RuntimeError(f"merge failed for chunk [{lo},{hi})")
+        print(
+            f"  merged through DOT {hi:,} ({merged:,} rows, {time.time() - started:.0f}s)",
+            flush=True,
+        )
+        lo = hi
+
+    with engine.connect() as conn:
         conn.execute(text("DROP TABLE census_staging"))
         conn.commit()
         count = conn.execute(text("SELECT count(*) FROM carriers")).scalar()
-
-    print(
-        f"DONE: {total:,} staged, {result.rowcount:,} merged, "
-        f"{count:,} carriers in DB, {time.time() - started:.0f}s total",
-        flush=True,
-    )
-    return 0
+    print(f"carriers in DB: {count:,}", flush=True)
+    return merged
 
 
 if __name__ == "__main__":
