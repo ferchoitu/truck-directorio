@@ -1,12 +1,11 @@
 import math
-from datetime import date
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import Select, func, or_, select
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.models import Carrier
+from app.models import Carrier, Inspection, Violation
 from app.schemas import (
     CarrierDetail,
     CarrierListResponse,
@@ -130,14 +129,23 @@ def get_carrier_safety(usdot: str, db: Session = Depends(get_db)) -> CarrierSafe
     carrier = db.scalar(select(Carrier).where(Carrier.usdot_number == usdot))
     if carrier is None:
         raise HTTPException(status_code=404, detail="Carrier not found")
+    # Explicit limited queries: mega fleets have tens of thousands of rows.
+    inspections = db.scalars(
+        select(Inspection)
+        .where(Inspection.carrier_id == carrier.id)
+        .order_by(Inspection.inspection_date.desc().nulls_last())
+        .limit(50)
+    ).all()
+    violations = db.scalars(
+        select(Violation)
+        .where(Violation.carrier_id == carrier.id)
+        .order_by(Violation.violation_date.desc().nulls_last())
+        .limit(10)
+    ).all()
     return CarrierSafetyResponse(
         usdot_number=carrier.usdot_number,
         safety_rating=carrier.safety_rating,
         safety_scores=carrier.safety_scores,
-        inspections=sorted(
-            carrier.inspections, key=lambda i: i.inspection_date or date.min, reverse=True
-        ),
-        violations=sorted(
-            carrier.violations, key=lambda v: v.violation_date or date.min, reverse=True
-        )[:10],
+        inspections=inspections,
+        violations=violations,
     )
