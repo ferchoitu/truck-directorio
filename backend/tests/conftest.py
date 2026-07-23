@@ -1,7 +1,6 @@
 import os
 
 os.environ.setdefault("APIFY_WEBHOOK_SECRET", "test-secret")
-os.environ.setdefault("SCRAPING_API_KEY", "test-scraping-key")
 
 import pytest
 from fastapi.testclient import TestClient
@@ -11,7 +10,6 @@ from sqlalchemy.pool import StaticPool
 
 from app.database import Base, get_db
 from app.main import app
-from app.security import reset_scraping_rate_limiter
 
 engine = create_engine(
     "sqlite://", connect_args={"check_same_thread": False}, poolclass=StaticPool
@@ -30,8 +28,7 @@ def db() -> Session:
 
 @pytest.fixture()
 def client(db: Session) -> TestClient:
-    reset_scraping_rate_limiter()
     app.dependency_overrides[get_db] = lambda: db
-    with TestClient(app, headers={"X-API-Key": "test-scraping-key"}) as test_client:
+    with TestClient(app) as test_client:
         yield test_client
     app.dependency_overrides.clear()
