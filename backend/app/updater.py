@@ -60,7 +60,7 @@ def census_record_to_ingest(rec: dict[str, Any]) -> dict[str, Any]:
 def _socrata_headers() -> dict[str, str]:
     import os
 
-    headers = {"User-Agent": "YoTruck/1.0 (+https://truck-directorio.vercel.app)"}
+    headers = {"User-Agent": "YoTruck/1.0 (+https://www.yotruck.com)"}
     token = os.environ.get("SOCRATA_APP_TOKEN", "")
     if token:
         headers["X-App-Token"] = token

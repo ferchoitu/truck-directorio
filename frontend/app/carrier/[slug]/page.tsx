@@ -16,7 +16,7 @@ import { stateByCode } from "@/lib/states";
 
 export const revalidate = 86400; // 24h ISR
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.yotruck.com";
 const CLAIM_CONTACT = "mailto:iturriozfermin@gmail.com?subject=Claim%20profile%20USDOT%20";
 
 interface CarrierPageProps {

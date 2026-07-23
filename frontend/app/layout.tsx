@@ -10,7 +10,7 @@ const heading = Fraunces({
 });
 const body = Inter({ subsets: ["latin"], variable: "--font-body" });
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.yotruck.com";
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),

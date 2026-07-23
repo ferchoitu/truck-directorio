@@ -6,7 +6,7 @@ import { STATES, stateByCode } from "@/lib/states";
 
 export const revalidate = 3600;
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.yotruck.com";
 
 const TRENDING = [
   { label: "USDOT 54283 → Swift Transportation", href: "/search?q=54283" },

@@ -2,7 +2,7 @@
 
 FMCSA motor carrier directory: 2.2M+ active US trucking companies with real SMS BASIC measures, inspection history, and violations — all built from free public FMCSA data.
 
-**Live**: frontend at https://truck-directorio.vercel.app · API at https://backend-production-9a9f.up.railway.app ([docs](https://backend-production-9a9f.up.railway.app/docs))
+**Canonical production domain**: https://www.yotruck.com · API at https://backend-production-9a9f.up.railway.app ([docs](https://backend-production-9a9f.up.railway.app/docs))
 
 ## Current status (2026-07-19)
 
@@ -141,7 +141,7 @@ Routes:
 
 **Railway (backend):** project `carriercheck` with Postgres + Redis. Deploys via `railway up` from `backend/` (the directory is linked to the service; not GitHub-connected). `railway.toml` runs `alembic upgrade head` before uvicorn; healthcheck timeout is 600s to allow index builds.
 
-**Vercel (frontend):** project `truck-directorio`, GitHub auto-deploy, root directory `frontend/`, env `NEXT_PUBLIC_API_URL` + `NEXT_PUBLIC_SITE_URL`. Every push to `main` redeploys.
+**Vercel (frontend):** project `truck-directorio`, GitHub auto-deploy, root directory `frontend/`, env `NEXT_PUBLIC_API_URL` + `NEXT_PUBLIC_SITE_URL=https://www.yotruck.com`. Every push to `main` redeploys. Add both `www.yotruck.com` and `yotruck.com` to the Vercel project, make `www` primary, and redirect the apex domain to `www`.
 
 ## Ground rules
 

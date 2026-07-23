@@ -9,7 +9,7 @@ class Settings(BaseSettings):
     database_url: str = "postgresql://postgres:postgres@localhost:5432/carriercheck"
     redis_url: str = "redis://localhost:6379/0"
 
-    cors_origins: str = "http://localhost:3000"
+    cors_origins: str = "https://www.yotruck.com,https://yotruck.com,http://localhost:3000"
 
 
 @lru_cache

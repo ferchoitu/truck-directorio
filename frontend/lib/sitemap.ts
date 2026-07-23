@@ -1,6 +1,6 @@
 export const SITEMAP_PAGE_SIZE = 50_000;
 
-export const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+export const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.yotruck.com";
 
 export function xmlEscape(value: string): string {
   return value

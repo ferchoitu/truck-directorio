@@ -7,7 +7,7 @@ export const metadata: Metadata = {
     "A USDOT number is the FMCSA's unique identifier for commercial vehicle operators. Learn who needs one, how it differs from an MC number, and how to look one up.",
 };
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.yotruck.com";
 
 const FAQS = [
   {

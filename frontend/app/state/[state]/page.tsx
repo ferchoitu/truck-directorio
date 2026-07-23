@@ -25,7 +25,7 @@ export function generateMetadata({ params }: StatePageProps): Metadata {
   };
 }
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.yotruck.com";
 
 export default async function StatePage({ params, searchParams }: StatePageProps) {
   const info = stateByCode(params.state);
