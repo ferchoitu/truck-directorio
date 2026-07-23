@@ -8,9 +8,9 @@ export const metadata: Metadata = {
 };
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
-const CONTACT = "mailto:iturriozfermin@gmail.com?subject=CarrierCheck%20API%20access";
+const CONTACT = "mailto:iturriozfermin@gmail.com?subject=YoTruck%20API%20access";
 
-const EXAMPLE = `curl "https://api.carriercheck.io/api/carriers/86876/safety"
+const EXAMPLE = `curl "https://backend-production-9a9f.up.railway.app/api/carriers/86876/safety"
 
 {
   "usdot_number": "86876",
@@ -71,7 +71,7 @@ export default function ApiAccessPage() {
             Plug 2.2M carriers <em className="italic text-lime-300">into your stack.</em>
           </h1>
           <p className="mt-4 max-w-2xl text-zinc-300">
-            The same data behind CarrierCheck, over REST: FMCSA registrations, SMS BASIC
+            The same data behind YoTruck, over REST: FMCSA registrations, SMS BASIC
             measures, 24-month inspection history, and violations — refreshed as the
             government publishes it.
           </p>

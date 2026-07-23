@@ -23,7 +23,7 @@ const FAQS = [
   },
   {
     q: "How do I read BASIC safety measures?",
-    a: "FMCSA groups safety data into BASIC categories: Unsafe Driving, HOS Compliance, Driver Fitness, Controlled Substances, and Vehicle Maintenance. Each gets an SMS measure — lower is better — and an alert flag when the carrier crosses FMCSA's intervention threshold. Public percentiles were discontinued by the FAST Act, so CarrierCheck shows the raw measures.",
+    a: "FMCSA groups safety data into BASIC categories: Unsafe Driving, HOS Compliance, Driver Fitness, Controlled Substances, and Vehicle Maintenance. Each gets an SMS measure — lower is better — and an alert flag when the carrier crosses FMCSA's intervention threshold. Public percentiles were discontinued by the FAST Act, so YoTruck shows the raw measures.",
   },
   {
     q: "What does a Satisfactory rating mean?",
@@ -31,7 +31,7 @@ const FAQS = [
   },
   {
     q: "How often is the data updated?",
-    a: "Carrier registrations come from the monthly FMCSA census file, and safety data (BASIC measures, inspections, violations) comes from the monthly SMS snapshot covering a rolling 24-month window. CarrierCheck refreshes as FMCSA publishes new files.",
+    a: "Carrier registrations come from the monthly FMCSA census file, and safety data (BASIC measures, inspections, violations) comes from the monthly SMS snapshot covering a rolling 24-month window. YoTruck refreshes as FMCSA publishes new files.",
   },
 ];
 
@@ -51,7 +51,7 @@ export default async function HomePage() {
     {
       "@context": "https://schema.org",
       "@type": "WebSite",
-      name: "CarrierCheck",
+      name: "YoTruck",
       url: SITE_URL,
       potentialAction: {
         "@type": "SearchAction",
@@ -120,7 +120,7 @@ export default async function HomePage() {
           <em className="italic text-zinc-500">full record.</em>
         </h2>
         <p className="mx-auto mt-4 max-w-xl text-zinc-600">
-          CarrierCheck joins the FMCSA census with the complete SMS safety file — measures,
+          YoTruck joins the FMCSA census with the complete SMS safety file — measures,
           inspections, and violations — so the whole picture is one search away.
         </p>
       </section>

@@ -21,7 +21,7 @@ async def lifespan(app: FastAPI):
         task.cancel()
 
 
-app = FastAPI(title="CarrierCheck API", version="0.1.0", lifespan=lifespan)
+app = FastAPI(title="YoTruck API", version="0.1.0", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,

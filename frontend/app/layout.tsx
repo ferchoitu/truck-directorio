@@ -15,8 +15,8 @@ const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: {
-    default: "CarrierCheck — FMCSA Carrier Safety Directory",
-    template: "%s | CarrierCheck",
+    default: "YoTruck — FMCSA Carrier Safety Directory",
+    template: "%s | YoTruck",
   },
   description:
     "Look up any US motor carrier by USDOT or MC number. Safety data, BASIC measures, inspections and violations from public FMCSA records.",
@@ -29,7 +29,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <header className="sticky top-3 z-30 px-3">
           <div className="mx-auto flex max-w-5xl items-center justify-between rounded-full border border-zinc-200/70 bg-white/85 py-2 pl-5 pr-2 shadow-sm backdrop-blur">
             <Link href="/" className="font-heading text-lg font-bold tracking-tight">
-              Carrier<span className="italic text-lime-600">Check</span>
+              Yo<span className="italic text-lime-600">Truck</span>
             </Link>
             <nav className="flex items-center gap-4 text-sm font-medium text-zinc-600 sm:gap-5">
               <Link href="/#states" className="hidden hover:text-zinc-900 sm:block">
@@ -54,10 +54,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <footer className="px-3 pb-3 sm:px-4">
           <div className="mx-auto max-w-6xl rounded-3xl bg-zinc-950 px-6 py-12 text-center text-sm text-zinc-400">
             <p className="font-heading text-2xl font-semibold text-white">
-              Carrier<span className="italic text-lime-300">Check</span>
+              Yo<span className="italic text-lime-300">Truck</span>
             </p>
             <p className="mx-auto mt-3 max-w-xl">
-              Data sourced from public FMCSA records. CarrierCheck is not affiliated with
+              Data sourced from public FMCSA records. YoTruck is not affiliated with
               the FMCSA or US DOT.
             </p>
             <div className="mt-6 flex flex-wrap justify-center gap-4 text-zinc-300">

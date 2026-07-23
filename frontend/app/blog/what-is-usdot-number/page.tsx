@@ -20,7 +20,7 @@ const FAQS = [
   },
   {
     q: "How do I look up a USDOT number?",
-    a: "Search the carrier's name or number on CarrierCheck or the FMCSA SAFER system. The record shows the company's legal name, address, fleet size, safety data, inspections, and violations.",
+    a: "Search the carrier's name or number on YoTruck or the FMCSA SAFER system. The record shows the company's legal name, address, fleet size, safety data, inspections, and violations.",
   },
   {
     q: "Does a USDOT number expire?",
@@ -35,8 +35,8 @@ export default function Article() {
       "@type": "Article",
       headline: "What is a USDOT Number? Complete Guide",
       datePublished: "2026-07-19",
-      author: { "@type": "Organization", name: "CarrierCheck" },
-      publisher: { "@type": "Organization", name: "CarrierCheck", url: SITE_URL },
+      author: { "@type": "Organization", name: "YoTruck" },
+      publisher: { "@type": "Organization", name: "YoTruck", url: SITE_URL },
     },
     {
       "@context": "https://schema.org",

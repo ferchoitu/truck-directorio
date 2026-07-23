@@ -1,4 +1,4 @@
-# CarrierCheck.io
+# YoTruck
 
 FMCSA motor carrier directory: 2.2M+ active US trucking companies with real SMS BASIC measures, inspection history, and violations — all built from free public FMCSA data.
 

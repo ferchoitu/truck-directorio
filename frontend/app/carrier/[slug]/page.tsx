@@ -505,7 +505,7 @@ export default async function CarrierPage({ params }: CarrierPageProps) {
       </section>
 
       <footer className="mt-8 border-t border-dashed border-zinc-300 pt-4 text-xs text-zinc-400">
-        Data from public FMCSA records (Census + SMS). CarrierCheck is not affiliated with
+        Data from public FMCSA records (Census + SMS). YoTruck is not affiliated with
         the FMCSA or US DOT.
       </footer>
     </article>
