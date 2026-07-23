@@ -111,12 +111,11 @@ class Violation(Base):
     carrier: Mapped[Carrier] = relationship(back_populates="violations")
 
 
-class ScrapingJob(Base):
-    __tablename__ = "scraping_jobs"
+class IngestionJob(Base):
+    __tablename__ = "ingestion_jobs"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    actor_id: Mapped[str] = mapped_column(String(100))
-    apify_run_id: Mapped[str | None] = mapped_column(String(100), index=True)
+    source: Mapped[str] = mapped_column(String(100), index=True)
     status: Mapped[str] = mapped_column(String(20), default="pending")
     usdot_range_start: Mapped[int | None] = mapped_column(Integer)
     usdot_range_end: Mapped[int | None] = mapped_column(Integer)

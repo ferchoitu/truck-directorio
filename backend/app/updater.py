@@ -3,8 +3,8 @@ FMCSA census API (data.transportation.gov) and upserts them.
 
 Runs inside the web process (single replica, MVP-simple — no extra Railway
 service). Every UPDATE_INTERVAL_HOURS it fetches carriers whose add_date falls
-in the lookback window and records the run in scraping_jobs with
-actor_id='census-incremental'.
+in the lookback window and records the run in ingestion_jobs with
+source='fmcsa-census-incremental'.
 """
 
 import asyncio
@@ -16,7 +16,7 @@ import httpx
 from sqlalchemy import select
 
 from app.database import SessionLocal
-from app.models import ScrapingJob
+from app.models import IngestionJob
 from app.services.ingest import upsert_carrier
 
 logger = logging.getLogger("updater")
@@ -108,9 +108,12 @@ async def fetch_new_carriers(since: date) -> list[dict[str, Any]]:
 def _last_run_at() -> datetime | None:
     with SessionLocal() as db:
         return db.scalar(
-            select(ScrapingJob.completed_at)
-            .where(ScrapingJob.actor_id == "census-incremental", ScrapingJob.status == "completed")
-            .order_by(ScrapingJob.id.desc())
+            select(IngestionJob.completed_at)
+            .where(
+                IngestionJob.source == "fmcsa-census-incremental",
+                IngestionJob.status == "completed",
+            )
+            .order_by(IngestionJob.id.desc())
             .limit(1)
         )
 
@@ -118,7 +121,7 @@ def _last_run_at() -> datetime | None:
 async def run_incremental_update() -> int:
     """One update pass. Returns number of carriers processed."""
     now = datetime.now(UTC).replace(tzinfo=None)
-    job = ScrapingJob(actor_id="census-incremental", status="running", started_at=now)
+    job = IngestionJob(source="fmcsa-census-incremental", status="running", started_at=now)
     with SessionLocal() as db:
         db.add(job)
         db.commit()
@@ -133,7 +136,7 @@ async def run_incremental_update() -> int:
                     processed += 1
             db.commit()
         with SessionLocal() as db:
-            job = db.get(ScrapingJob, job_id)
+            job = db.get(IngestionJob, job_id)
             if job:
                 job.status = "completed"
                 job.total_records = len(records)
@@ -144,7 +147,7 @@ async def run_incremental_update() -> int:
         return processed
     except Exception as exc:  # noqa: BLE001 - record failure, keep the loop alive
         with SessionLocal() as db:
-            job = db.get(ScrapingJob, job_id)
+            job = db.get(IngestionJob, job_id)
             if job:
                 job.status = "failed"
                 job.error_message = str(exc)[:2000]

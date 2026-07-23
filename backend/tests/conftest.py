@@ -1,7 +1,5 @@
 import os
 
-os.environ.setdefault("APIFY_WEBHOOK_SECRET", "test-secret")
-
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine

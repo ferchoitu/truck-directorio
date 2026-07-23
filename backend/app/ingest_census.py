@@ -3,7 +3,7 @@
 Source: data.transportation.gov dataset az4n-8mr2 (free Socrata API, ~4.5M rows,
 ~2.2M active). Streams pages with keyset pagination, COPYs them into an
 unlogged staging table, then merges into carriers in one SQL statement that
-never overwrites richer data already present (email, DBA, MC from Apify).
+never overwrites richer data already imported from other official FMCSA datasets.
 
 Usage:
     python -m app.ingest_census --pages 1          # smoke test (1 page)

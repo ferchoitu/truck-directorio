@@ -135,12 +135,3 @@ def test_carrier_slugs_for_sitemap(client: TestClient, db: Session) -> None:
     assert all(s.endswith(("-usdot-100001", "-usdot-100002")) for s in slugs)
     page2 = client.get("/api/carriers/slugs", params={"per_page": 2, "page": 1}).json()
     assert len(page2) == 1
-
-
-def test_webhook_rejects_bad_secret(client: TestClient) -> None:
-    resp = client.post(
-        "/api/webhooks/apify",
-        params={"job_id": 1, "secret": "wrong"},
-        json={"eventType": "ACTOR.RUN.SUCCEEDED"},
-    )
-    assert resp.status_code == 401

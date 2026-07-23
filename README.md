@@ -12,7 +12,8 @@ FMCSA motor carrier directory: 2.2M+ active US trucking companies with real SMS 
 | Real BASIC measures (5 categories + alerts) | 1,826,639 | SMS AB — datahub.transportation.gov `4y6x-dmck` | $0 |
 | Itemized inspections (24-month window) | 5,683,534 | SMS Input Inspection — `rbkj-cgst` | $0 |
 | Itemized violations (code, description, severity, OOS) | 6,675,983 | SMS Input Violation — `8mt8-2mdr` | $0 |
-| Enrichment: email, DBA, MC, DUNS | selective | Apify actors (pay-per-record) | paid |
+| Contact enrichment (email, DBA, phone) | monthly | SMS Input Census `kjg3-diqy` | $0 |
+| Authority, MC and insurance | daily/monthly | FMCSA Operating Authority datasets | $0 |
 
 Database: ~3.5GB of the 4.9GB Railway volume. **Constraint: stay on the $5 Railway plan** — see [Bulk ingestion rules](#bulk-ingestion-rules).
 
@@ -28,10 +29,10 @@ Pending: weekly new-carrier cron + monthly SMS refresh, Google Search Console su
 | Backend | FastAPI + SQLAlchemy 2.0 + Alembic | Railway (deploy via `railway up` from `backend/`) |
 | Database | PostgreSQL (+ Redis, reserved for caching) | Railway |
 | Bulk data | Census + SMS open-data ingestion scripts | run locally against Railway's public DB URL |
-| Enrichment | Apify actors (via API + webhooks) | Apify |
+| Enrichment | Additional official FMCSA open datasets | data.transportation.gov |
 
 ```
-backend/    FastAPI app, models, migrations, bulk ingestion scripts, Apify integration, tests
+backend/    FastAPI app, models, migrations, official FMCSA ingestion scripts, tests
 frontend/   Next.js app: home, search, state pages, carrier profiles (ISR), sitemaps
 data/       Keyword research exports
 ```
@@ -46,7 +47,7 @@ DATABASE_URL=<railway-public-url> python -m app.ingest_census            # full 
 DATABASE_URL=<railway-public-url> python -m app.ingest_census --resume   # continue after a cut
 ```
 
-Streams `data.transportation.gov/resource/az4n-8mr2` (keyset pagination, 50k/page) into an unlogged staging table via COPY, then merges in chunked statements. `COALESCE` merge never overwrites richer fields (email, DBA, MC) that came from Apify.
+Streams `data.transportation.gov/resource/az4n-8mr2` (keyset pagination, 50k/page) into an unlogged staging table via COPY, then merges in chunked statements. `COALESCE` merge never overwrites richer fields imported from other official FMCSA datasets.
 
 ### 2. Bulk: SMS safety data (free, monthly refresh)
 
@@ -58,17 +59,15 @@ python -m app.ingest_sms violations --direct    # 6.7M rows, stage-less streamin
 
 `--direct` resolves `carrier_id` per page in Python and COPYs straight into the final table — no staging, ~1GB less disk. Checkpoint file makes it resumable. Itemized tables are truncated and fully replaced each run (SMS is a rolling 24-month window).
 
-### 3. Enrichment: Apify actors (paid, selective)
+### 3. Official enrichment datasets (free)
 
-`POST /api/scraping/start` launches an actor with a completion webhook → backend downloads the dataset and upserts (`app/services/ingest.py`, field-name tolerant). Verify connection with `python -m app.check_apify`.
+Use FMCSA's public datasets rather than paid third-party scraping:
 
-| Actor | Input | Use |
-|---|---|---|
-| `jungle_synthesizer/fmcsa-dot-crawler` (main) | `dot_start`, `max_results`, `is_premium_mode` | email, DBA, MC, DUNS (non-premium already includes email + safety rating) |
-| `parseforge/fmcsa-carrier-safety-scraper` (safety) | `dotNumbers[]`, `maxItems` | SAFER snapshot on demand |
-| `curative_blanket/fmcsa-new-carrier-feed` (new) | `daysBack`, `incremental` | superseded by free Socrata `add_date` queries |
+- `kjg3-diqy` — active carrier census with email, DBA, phone, fleet and registration details.
+- FMCSA Operating Authority datasets — MC/FF/MX authority and insurance information.
+- SAFER Company Snapshot — free official one-carrier lookup for fields that are not available in bulk; integrate directly and rate-limit responsibly only if product demand requires it.
 
-Use Apify only for carriers worth enriching (traffic-driven), not bulk — the free census covers the rest.
+The backend intentionally contains no paid scraping triggers or third-party scraping credentials.
 
 ### Bulk ingestion rules
 
@@ -83,7 +82,7 @@ Hard-won on the $5 Railway plan (4.9GB volume) and its public TCP proxy:
 
 - Census `power_units` is self-reported (form MCS-150) and contains garbage (4.5M "vehicles" on a fruit stand). Sanity rules: values >150k nulled at ingest; fleets >1,000 with zero inspections nulled; fleets >5,000 require proportional inspection evidence.
 - SMS BASIC **percentiles are not public** (FAST Act) — we store and display the raw SMS *measures* + acute/critical alert flags.
-- SAFER "record not found" marks a carrier inactive; never creates stub rows.
+- Never infer an inactive carrier from a failed external lookup; use an explicit official status field.
 - Public business data only — never personal driver information.
 
 ## Backend setup
@@ -94,7 +93,7 @@ Requires Python 3.12+ and a local PostgreSQL.
 cd backend
 python3 -m venv .venv && source .venv/bin/activate
 pip install -r requirements-dev.txt
-cp .env.example .env         # edit DATABASE_URL, APIFY_TOKEN, APIFY_WEBHOOK_SECRET
+cp .env.example .env         # edit DATABASE_URL and optional SOCRATA_APP_TOKEN
 alembic upgrade head
 uvicorn app.main:app --reload --port 8000
 ```
@@ -112,9 +111,6 @@ GET  /api/carriers/slugs?page=      50k-slug pages feeding the sitemaps
 GET  /api/carriers/by-slug/{slug}
 GET  /api/carriers/{usdot}
 GET  /api/carriers/{usdot}/safety   5 BASIC measures + latest 50 inspections + latest 10 violations
-POST /api/scraping/start            {actor: main|safety|new, usdot_range_start/end, premium, days_back}
-GET  /api/scraping/jobs[/{id}]
-POST /api/webhooks/apify            Apify completion callback (?secret=&job_id=)
 ```
 
 ## Frontend setup
@@ -143,7 +139,7 @@ Routes:
 
 ## Deploy
 
-**Railway (backend):** project `carriercheck` with Postgres + Redis. Deploys via `railway up` from `backend/` (the directory is linked to the service; not GitHub-connected). `railway.toml` runs `alembic upgrade head` before uvicorn; healthcheck timeout is 600s to allow index builds. `PUBLIC_BASE_URL` points at the public Railway URL so Apify webhooks can reach it.
+**Railway (backend):** project `carriercheck` with Postgres + Redis. Deploys via `railway up` from `backend/` (the directory is linked to the service; not GitHub-connected). `railway.toml` runs `alembic upgrade head` before uvicorn; healthcheck timeout is 600s to allow index builds.
 
 **Vercel (frontend):** project `truck-directorio`, GitHub auto-deploy, root directory `frontend/`, env `NEXT_PUBLIC_API_URL` + `NEXT_PUBLIC_SITE_URL`. Every push to `main` redeploys.
 
@@ -151,7 +147,7 @@ Routes:
 
 1. TypeScript strict, zero `any`. Pydantic for API validation. SQLAlchemy 2.0 typed models.
 2. Public data only — never personal driver information.
-3. Free government open data for bulk; paid scraping only for selective enrichment.
+3. Use free official government data; add direct, rate-limited official lookups only when a field is unavailable in bulk.
 4. Rate-limit external calls; respect government servers.
 5. Stay on the $5 Railway plan (see bulk ingestion rules).
 6. MVP first, no over-engineering.

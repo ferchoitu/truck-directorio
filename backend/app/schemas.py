@@ -1,7 +1,7 @@
 from datetime import date, datetime
 from decimal import Decimal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict
 
 
 class CarrierSummary(BaseModel):
@@ -108,33 +108,3 @@ class UpdatesResponse(BaseModel):
     new_carriers_this_week: int | None = None
     inspections_month: str | None = None
     inspections_last_month: int = 0
-
-
-class ScrapingStartRequest(BaseModel):
-    actor: str = Field(
-        default="main", pattern="^(main|safety|new)$", description="Which Apify actor to run"
-    )
-    # Required for actor=main|safety; ignored for actor=new.
-    usdot_range_start: int | None = Field(default=None, ge=1)
-    usdot_range_end: int | None = Field(default=None, ge=1)
-    # main actor only: premium data fields (emails, crash history, safety ratings).
-    premium: bool = False
-    # new actor only: how far back to look for newly added carriers.
-    days_back: int = Field(default=7, ge=1, le=90)
-
-
-class ScrapingJobOut(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
-
-    id: int
-    actor_id: str
-    apify_run_id: str | None = None
-    status: str
-    usdot_range_start: int | None = None
-    usdot_range_end: int | None = None
-    total_records: int | None = None
-    processed_records: int
-    error_message: str | None = None
-    started_at: datetime | None = None
-    completed_at: datetime | None = None
-    created_at: datetime
