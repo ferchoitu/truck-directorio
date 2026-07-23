@@ -112,8 +112,8 @@ GET  /api/carriers/slugs?page=      50k-slug pages feeding the sitemaps
 GET  /api/carriers/by-slug/{slug}
 GET  /api/carriers/{usdot}
 GET  /api/carriers/{usdot}/safety   5 BASIC measures + latest 50 inspections + latest 10 violations
-POST /api/scraping/start            {actor: main|safety|new, usdot_range_start/end, premium, days_back}
-GET  /api/scraping/jobs[/{id}]
+POST /api/scraping/start            operator-only; X-API-Key required; rate limited
+GET  /api/scraping/jobs[/{id}]      operator-only; X-API-Key required
 POST /api/webhooks/apify            Apify completion callback (?secret=&job_id=)
 ```
 
@@ -143,7 +143,7 @@ Routes:
 
 ## Deploy
 
-**Railway (backend):** project `carriercheck` with Postgres + Redis. Deploys via `railway up` from `backend/` (the directory is linked to the service; not GitHub-connected). `railway.toml` runs `alembic upgrade head` before uvicorn; healthcheck timeout is 600s to allow index builds. `PUBLIC_BASE_URL` points at the public Railway URL so Apify webhooks can reach it.
+**Railway (backend):** project `carriercheck` with Postgres + Redis. Deploys via `railway up` from `backend/` (the directory is linked to the service; not GitHub-connected). `railway.toml` runs `alembic upgrade head` before uvicorn; healthcheck timeout is 600s to allow index builds. `PUBLIC_BASE_URL` points at the public Railway URL so Apify webhooks can reach it. Set `SCRAPING_API_KEY` to a long random secret for operator endpoints; `/api/scraping/start` defaults to 5 requests/minute per API key (`SCRAPING_START_RATE_LIMIT_PER_MINUTE`).
 
 **Vercel (frontend):** project `truck-directorio`, GitHub auto-deploy, root directory `frontend/`, env `NEXT_PUBLIC_API_URL` + `NEXT_PUBLIC_SITE_URL`. Every push to `main` redeploys.
 

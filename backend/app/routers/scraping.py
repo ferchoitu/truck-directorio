@@ -8,13 +8,23 @@ from app.config import get_settings
 from app.database import get_db
 from app.models import ScrapingJob
 from app.schemas import ScrapingJobOut, ScrapingStartRequest
+from app.security import limit_scraping_starts, require_scraping_api_key
 from app.services.apify import ApifyClient
 from app.services.run_input import build_run_input
 
-router = APIRouter(prefix="/api/scraping", tags=["scraping"])
+router = APIRouter(
+    prefix="/api/scraping",
+    tags=["scraping"],
+    dependencies=[Depends(require_scraping_api_key)],
+)
 
 
-@router.post("/start", response_model=ScrapingJobOut, status_code=201)
+@router.post(
+    "/start",
+    response_model=ScrapingJobOut,
+    status_code=201,
+    dependencies=[Depends(limit_scraping_starts)],
+)
 def start_scraping(body: ScrapingStartRequest, db: Session = Depends(get_db)) -> ScrapingJobOut:
     try:
         run_input = build_run_input(body)

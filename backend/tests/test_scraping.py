@@ -87,6 +87,22 @@ def test_start_scraping_validates_range(client: TestClient) -> None:
     assert resp.status_code == 422
 
 
+def test_scraping_routes_require_api_key(client: TestClient) -> None:
+    resp = client.get("/api/scraping/jobs", headers={"X-API-Key": "wrong"})
+    assert resp.status_code == 401
+
+
+def test_scraping_start_is_rate_limited(client: TestClient, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(get_settings(), "scraping_start_rate_limit_per_minute", 1)
+    invalid_body = {"actor": "main", "usdot_range_start": 100, "usdot_range_end": 1}
+
+    assert client.post("/api/scraping/start", json=invalid_body).status_code == 422
+    resp = client.post("/api/scraping/start", json=invalid_body)
+
+    assert resp.status_code == 429
+    assert int(resp.headers["Retry-After"]) >= 1
+
+
 @respx.mock
 def test_webhook_success_ingests_dataset(client: TestClient, db: Session) -> None:
     job = ScrapingJob(actor_id=get_settings().apify_actor_main, status="running")
