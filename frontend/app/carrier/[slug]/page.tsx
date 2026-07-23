@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, permanentRedirect } from "next/navigation";
 import SafetyBadge from "@/components/SafetyBadge";
 import SectionLabel from "@/components/SectionLabel";
 import ShareActions from "@/components/ShareActions";
@@ -35,9 +35,11 @@ export async function generateMetadata({ params }: CarrierPageProps): Promise<Me
   const carrier = await getCarrierBySlug(params.slug);
   if (!carrier) return { title: "Carrier not found" };
   const name = carrier.legal_name ?? `USDOT ${carrier.usdot_number}`;
+  const canonicalSlug = carrier.slug ?? params.slug;
   return {
     title: `${name} (USDOT ${carrier.usdot_number}) | Safety Record`,
     description: `View safety data, inspections and violations for ${name}. USDOT ${carrier.usdot_number}${carrier.state ? `, based in ${carrier.state}` : ""}.`,
+    alternates: { canonical: `/carrier/${canonicalSlug}` },
   };
 }
 
@@ -82,6 +84,9 @@ function Row({ label, value }: { label: string; value: React.ReactNode }) {
 export default async function CarrierPage({ params }: CarrierPageProps) {
   const carrier = await getCarrierBySlug(params.slug);
   if (!carrier) notFound();
+  if (carrier.slug && params.slug !== carrier.slug) {
+    permanentRedirect(`/carrier/${carrier.slug}`);
+  }
 
   const safety = await getCarrierSafety(carrier.usdot_number);
   const name = carrier.legal_name ?? `USDOT ${carrier.usdot_number}`;
@@ -132,7 +137,7 @@ export default async function CarrierPage({ params }: CarrierPageProps) {
       name,
       ...(carrier.dba_name ? { alternateName: carrier.dba_name } : {}),
       identifier: `USDOT ${usdot}`,
-      url: `${SITE_URL}/carrier/${params.slug}`,
+      url: `${SITE_URL}/carrier/${carrier.slug ?? params.slug}`,
       ...(carrier.phone ? { telephone: carrier.phone } : {}),
       ...(carrier.address || carrier.city
         ? {
@@ -166,7 +171,7 @@ export default async function CarrierPage({ params }: CarrierPageProps) {
           "@type": "ListItem",
           position: carrier.state ? 3 : 2,
           name,
-          item: `${SITE_URL}/carrier/${params.slug}`,
+          item: `${SITE_URL}/carrier/${carrier.slug ?? params.slug}`,
         },
       ],
     },
