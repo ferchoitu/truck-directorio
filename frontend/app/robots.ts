@@ -1,6 +1,7 @@
 import type { MetadataRoute } from "next";
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.yotruck.com";
+// robots.txt must always advertise the production canonical sitemap.
+const SITE_URL = "https://www.yotruck.com";
 
 export default function robots(): MetadataRoute.Robots {
   return {
