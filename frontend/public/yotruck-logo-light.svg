@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 560 150" role="img" aria-labelledby="title">
+  <title id="title">YoTruck</title>
+  <g transform="translate(4 4)">
+    <rect width="142" height="142" rx="32" fill="#18181b" stroke="#3f3f46" stroke-width="2"/>
+    <path d="M27 24h29l15 24 15-24h29L83 69v16H59V69L27 24Z" fill="#bef264"/>
+    <path d="M59 78 25 132h29l17-42 17 42h29L83 78H59Z" fill="#65a30d"/>
+    <path d="M67 85h8l2 13H65l2-13Zm-4 23h16l3 18H60l3-18Z" fill="#bef264"/>
+  </g>
+  <text x="174" y="111" fill="#ffffff" font-family="Inter, Arial, sans-serif" font-size="92" font-weight="800" letter-spacing="-6">Yo</text>
+  <text x="288" y="111" fill="#bef264" font-family="Inter, Arial, sans-serif" font-size="92" font-weight="800" font-style="italic" letter-spacing="-6">Truck</text>
+</svg>

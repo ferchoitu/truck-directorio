@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Fraunces, Inter } from "next/font/google";
+import Image from "next/image";
 import Link from "next/link";
 import "./globals.css";
 
@@ -28,8 +29,15 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className="min-h-screen bg-[#f4f5f2] font-sans text-zinc-900 antialiased">
         <header className="sticky top-3 z-30 px-3">
           <div className="mx-auto flex max-w-5xl items-center justify-between rounded-full border border-zinc-200/70 bg-white/85 py-2 pl-5 pr-2 shadow-sm backdrop-blur">
-            <Link href="/" className="font-heading text-lg font-bold tracking-tight">
-              Yo<span className="italic text-lime-600">Truck</span>
+            <Link href="/" aria-label="YoTruck home" className="flex items-center">
+              <Image
+                src="/yotruck-logo.svg"
+                alt="YoTruck"
+                width={560}
+                height={150}
+                priority
+                className="h-8 w-auto sm:h-9"
+              />
             </Link>
             <nav className="flex items-center gap-4 text-sm font-medium text-zinc-600 sm:gap-5">
               <Link href="/#states" className="hidden hover:text-zinc-900 sm:block">
@@ -53,9 +61,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <main className="mx-auto max-w-6xl px-3 pb-6 pt-6 sm:px-4">{children}</main>
         <footer className="px-3 pb-3 sm:px-4">
           <div className="mx-auto max-w-6xl rounded-3xl bg-zinc-950 px-6 py-12 text-center text-sm text-zinc-400">
-            <p className="font-heading text-2xl font-semibold text-white">
-              Yo<span className="italic text-lime-300">Truck</span>
-            </p>
+            <Image
+              src="/yotruck-logo-light.svg"
+              alt="YoTruck"
+              width={560}
+              height={150}
+              className="mx-auto h-12 w-auto"
+            />
             <p className="mx-auto mt-3 max-w-xl">
               Data sourced from public FMCSA records. YoTruck is not affiliated with
               the FMCSA or US DOT.
