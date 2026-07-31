@@ -4,7 +4,7 @@ FMCSA motor carrier directory: 2.2M+ active US trucking companies with real SMS 
 
 **Canonical production domain**: https://www.yotruck.com · API at https://backend-production-9a9f.up.railway.app ([docs](https://backend-production-9a9f.up.railway.app/docs))
 
-## Current status (2026-07-19)
+## Current status (2026-07-31)
 
 | Data | Rows | Source | Cost |
 |---|---|---|---|
@@ -17,9 +17,11 @@ FMCSA motor carrier directory: 2.2M+ active US trucking companies with real SMS 
 
 Database: ~3.5GB of the 4.9GB Railway volume. **Constraint: stay on the $5 Railway plan** — see [Bulk ingestion rules](#bulk-ingestion-rules).
 
-Shipped: search over 2.2M rows in ~0.5s (pg_trgm), 52 state pages, chunked sitemaps (50k URLs each), robots.txt, JSON-LD, ISR profiles.
+Shipped: search over 2.2M rows in ~0.5s (pg_trgm), 52 state pages, chunked sitemaps (50k URLs each), robots.txt, JSON-LD, ISR profiles, [metered API plans](#monetization) and [affiliate placements](#2-affiliate-offers).
 
-Pending: weekly new-carrier cron + monthly SMS refresh, Google Search Console submission, monetization (AdSense/affiliates), blog content.
+Pending: weekly new-carrier cron + monthly SMS refresh, Paddle credentials + domain approval (see [Billing](#1-api-plans-paddle)), signing affiliate programs, blog content.
+
+**Early traffic** (Google Search Console, first 3 days 27–29/07/2026): 36 clicks, 1.17k impressions, 3.1% CTR, average position 21.3. The CTR is roughly double the norm for that position, so titles and snippets are working — the ceiling is ranking, not click-through.
 
 ## Architecture
 
@@ -113,6 +115,23 @@ GET  /api/carriers/{usdot}
 GET  /api/carriers/{usdot}/safety   5 BASIC measures + latest 50 inspections + latest 10 violations
 ```
 
+These stay **public and unauthenticated** — the website renders from them server-side, so gating them would break the site. Everything sold to customers lives under `/api/v1/*` instead:
+
+```
+GET  /api/v1/carriers               same filters as above
+GET  /api/v1/carriers/search?q=
+GET  /api/v1/carriers/top?limit=
+GET  /api/v1/carriers/by-slug/{slug}
+GET  /api/v1/carriers/{usdot}
+GET  /api/v1/carriers/{usdot}/safety
+GET  /api/v1/usage                  quota consumed this period (does not itself consume quota)
+
+POST /api/billing/webhook           Paddle events, HMAC-verified
+POST /api/billing/claim             exchange a completed transaction for an API key
+```
+
+`/api/v1/*` requires `Authorization: Bearer <key>` and bills one request against a rolling 30-day quota.
+
 ## Frontend setup
 
 Requires Node 18+.
@@ -130,6 +149,9 @@ Routes:
 - `/search?q=` — paginated results (25/page)
 - `/carrier/[slug]` — ISR profiles (`revalidate: 86400`, top 10k prerendered), JSON-LD, BASIC measures with alert badges, inspection history, recent violations
 - `/state/[xx]` — 52 SSG state listing pages
+- `/api-access` — API plans, endpoint table, Paddle checkout
+- `/api-access/success` — one-time API key delivery after checkout (`noindex`)
+- `/blog` — long-form SEO content
 - `/sitemap.xml` → `/sitemaps/[id]` — chunked sitemaps, 50k URLs each, generated on demand with 24h cache
 - `/robots.txt`
 
@@ -137,11 +159,57 @@ Routes:
 
 **ISR gotcha**: pages prerender at build time — data ingested after a build won't appear on already-prerendered pages for 24h unless you trigger a rebuild (empty commit push).
 
+## Monetization
+
+Two lines that both work at low traffic and neither of which gates an indexed page.
+
+### 1. API plans (Paddle)
+
+Growth is $49/mo for 50,000 requests against `/api/v1/*`. Product `pro_01kyw5xvn971kg0gkj7bea7hsb`, price `pri_01kyw5zy3982s8ntx3mebyr2sm`.
+
+Flow: Paddle overlay checkout → `subscription.created` webhook provisions a `subscribers` row → the success page exchanges the transaction id for an API key via `POST /api/billing/claim`.
+
+- **Only a SHA-256 hash of the key is stored.** The plaintext is shown once and is unrecoverable; claiming again *rotates* and invalidates the previous key.
+- Webhooks verify Paddle's `ts=..;h1=..` HMAC over `{ts}:{raw_body}` with a 300s replay window. An unsigned request is rejected with 401.
+- The plan is resolved from the Paddle price id (`_plan_for()` in `routers/billing.py`), not hardcoded. New tiers need one entry there plus one in `PLAN_QUOTAS`.
+- An unrecognised price still provisions on the entry plan — by webhook time the customer has already paid.
+- Price ids are **not secret** (they ship in the public frontend bundle) and are committed. API keys, client tokens and webhook secrets never are.
+
+Backend env: `PADDLE_ENVIRONMENT`, `PADDLE_API_KEY`, `PADDLE_WEBHOOK_SECRET`, `PADDLE_PRICE_ID_GROWTH`.
+Frontend env: `NEXT_PUBLIC_PADDLE_ENVIRONMENT`, `NEXT_PUBLIC_PADDLE_CLIENT_TOKEN`, `NEXT_PUBLIC_PADDLE_PRICE_GROWTH`.
+
+Until the client token and price are both set, the checkout button **falls back to a mailto link** so the CTA is never dead.
+
+Still required before taking payments: register the webhook destination at `/api/billing/webhook` for `subscription.*`, approve the domain in Paddle, complete seller verification, and run `alembic upgrade head` (migration `0004` creates `subscribers`).
+
+### 2. Affiliate offers
+
+Rendered on carrier profiles **below** the carrier's own data — never above the atomic-answer block that drives AI citations.
+
+- Links carry `rel="sponsored nofollow noopener noreferrer"`. Google requires `sponsored` for paid links; omitting it across 2.2M pages invites a manual action.
+- A commission disclosure is always visible next to the offers (FTC).
+- The section renders **nothing** until a partner URL is configured, so unsigned programs never leave dead links.
+- Category is chosen by **violations per inspection**, never by raw violation count — nearly every inspected carrier has *some* violation, so a `> 0` test routes the whole directory to one offer. `>= 2` per inspection (or any BASIC alert) → compliance; clean record with ≤10 power units → factoring; otherwise insurance + ELD.
+
+Env: `NEXT_PUBLIC_AFF_INSURANCE_URL`, `NEXT_PUBLIC_AFF_ELD_URL`, `NEXT_PUBLIC_AFF_FACTORING_URL`, `NEXT_PUBLIC_AFF_COMPLIANCE_URL`.
+
+### Deliberately not built: consumer paywall
+
+Metering profile views (5 free/month, then paid tiers) was considered and rejected on 2026-07-31. At ~360 visits/month the meter would almost never trigger, so it would earn roughly nothing while risking the SEO that is just starting to work — paywalling indexed pages without Google's declared metered-paywall JSON-LD is cloaking. Revisit at 5–10k visits/month.
+
+## Crawler policy
+
+ClaudeBot is blocked; **every other bot is deliberately allowed**. It was generating 902K of 907K edge requests in 24h (99.4%) at a 0.8% cache hit rate, which also drove ~235K function invocations.
+
+Blocked in two places: the `rules` array in `frontend/app/robots.ts`, **and** a Vercel WAF rule on `User-Agent contains "ClaudeBot"`. The WAF rule is account configuration, not in this repo — it will not survive a move off Vercel.
+
+Googlebot, OAI-SearchBot and PerplexityBot stay allowed on purpose: carrier pages carry an `atomicAnswer()` GEO/AEO block written to be cited in AI answers. **Do not enable Vercel's blanket AI-bot protection** — it would catch those too.
+
 ## Deploy
 
 **Railway (backend):** project `carriercheck` with Postgres + Redis. Deploys via `railway up` from `backend/` (the directory is linked to the service; not GitHub-connected). `railway.toml` runs `alembic upgrade head` before uvicorn; healthcheck timeout is 600s to allow index builds.
 
-**Vercel (frontend):** project `truck-directorio`, GitHub auto-deploy, root directory `frontend/`, env `NEXT_PUBLIC_API_URL` + `NEXT_PUBLIC_SITE_URL=https://www.yotruck.com`. Every push to `main` redeploys. Add both `www.yotruck.com` and `yotruck.com` to the Vercel project, make `www` primary, and redirect the apex domain to `www`.
+**Vercel (frontend):** project `truck-directorio`, GitHub auto-deploy, root directory `frontend/`, env `NEXT_PUBLIC_API_URL` + `NEXT_PUBLIC_SITE_URL=https://www.yotruck.com`, plus the Paddle and affiliate variables from [Monetization](#monetization). Every push to `main` redeploys. Add both `www.yotruck.com` and `yotruck.com` to the Vercel project, make `www` primary, and redirect the apex domain to `www`.
 
 ## Ground rules
 
@@ -151,3 +219,5 @@ Routes:
 4. Rate-limit external calls; respect government servers.
 5. Stay on the $5 Railway plan (see bulk ingestion rules).
 6. MVP first, no over-engineering.
+7. **Never gate an indexed page.** Organic search is the whole traffic engine; monetize through the API, affiliates and ads, not by paywalling `/carrier/*`. Any paid link must carry `rel="sponsored"`.
+8. Credentials live in env vars only — never in the repo, never in a chat transcript. Price ids are public and may be committed; keys, tokens and webhook secrets may not.

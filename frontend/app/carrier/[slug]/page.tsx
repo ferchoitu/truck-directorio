@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, permanentRedirect } from "next/navigation";
+import AffiliateOffers from "@/components/AffiliateOffers";
 import SafetyBadge from "@/components/SafetyBadge";
 import SectionLabel from "@/components/SectionLabel";
 import ShareActions from "@/components/ShareActions";
@@ -14,10 +15,15 @@ import {
 } from "@/lib/api";
 import { stateByCode } from "@/lib/states";
 
-export const revalidate = 86400; // 24h ISR
+// 30-day ISR. This is the only route where revalidation cost matters: there are
+// 2.2M carrier pages and every regeneration is a serverless invocation plus a
+// backend query, so a 24h window was rebuilding the whole directory monthly-over
+// against data that only moves when FMCSA publishes — the census is monthly and
+// SMS is a monthly snapshot. Nothing was gaining freshness; it was just churn.
+export const revalidate = 2592000;
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.yotruck.com";
-const CLAIM_CONTACT = "mailto:iturriozfermin@gmail.com?subject=Claim%20profile%20USDOT%20";
+const CLAIM_CONTACT = "mailto:nuclealabs@gmail.com?subject=Claim%20profile%20USDOT%20";
 
 interface CarrierPageProps {
   params: { slug: string };
@@ -401,6 +407,16 @@ export default async function CarrierPage({ params }: CarrierPageProps) {
           </p>
         </div>
       </section>
+
+      {/* SPONSORED — below the carrier's own data, never above it */}
+      <AffiliateOffers
+        totalVehicles={carrier.total_vehicles ?? null}
+        inspectionsTotal={safety?.inspections_total ?? 0}
+        violationsTotal={safety?.violations_total ?? 0}
+        hasSafetyAlert={
+          safety?.safety_scores.some((s) => s.alert_status === "alert") ?? false
+        }
+      />
 
       {/* INSPECTIONS */}
       {safety && safety.inspections_total > 0 && (

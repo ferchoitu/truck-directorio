@@ -108,3 +108,22 @@ class UpdatesResponse(BaseModel):
     new_carriers_this_week: int | None = None
     inspections_month: str | None = None
     inspections_last_month: int = 0
+
+
+class ClaimKeyRequest(BaseModel):
+    transaction_id: str
+
+
+class ClaimKeyResponse(BaseModel):
+    api_key: str
+    plan: str
+    monthly_quota: int
+
+
+class UsageResponse(BaseModel):
+    plan: str
+    status: str
+    monthly_quota: int
+    usage_count: int
+    remaining: int
+    period_start: date | None = None

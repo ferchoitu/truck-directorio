@@ -61,6 +61,13 @@ export default async function HomePage() {
     },
     {
       "@context": "https://schema.org",
+      "@type": "Organization",
+      name: "YoTruck",
+      url: SITE_URL,
+      email: "nuclealabs@gmail.com",
+    },
+    {
+      "@context": "https://schema.org",
       "@type": "FAQPage",
       mainEntity: FAQS.map((f) => ({
         "@type": "Question",

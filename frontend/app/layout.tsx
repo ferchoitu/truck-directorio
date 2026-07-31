@@ -77,6 +77,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               <Link href="/#states" className="hover:text-lime-300">States</Link>
               <Link href="/api-access" className="hover:text-lime-300">API</Link>
               <Link href="/blog" className="hover:text-lime-300">Blog</Link>
+              <a href="mailto:nuclealabs@gmail.com" className="hover:text-lime-300">Contact</a>
             </div>
           </div>
         </footer>

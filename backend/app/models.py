@@ -111,6 +111,38 @@ class Violation(Base):
     carrier: Mapped[Carrier] = relationship(back_populates="violations")
 
 
+class Subscriber(Base):
+    """A paying API customer, mirrored from Paddle subscription webhooks."""
+
+    __tablename__ = "subscribers"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    email: Mapped[str] = mapped_column(String(255), index=True)
+    plan: Mapped[str] = mapped_column(String(20), default="growth")
+    # active | past_due | paused | canceled — mirrors Paddle's subscription status.
+    status: Mapped[str] = mapped_column(String(20), default="active", index=True)
+
+    paddle_customer_id: Mapped[str | None] = mapped_column(String(64), index=True)
+    paddle_subscription_id: Mapped[str] = mapped_column(
+        String(64), unique=True, index=True
+    )
+
+    # Only the SHA-256 of the API key is stored. The plaintext is shown once, at
+    # issue time, and is unrecoverable afterwards — losing it means rotating.
+    api_key_hash: Mapped[str | None] = mapped_column(String(64), unique=True, index=True)
+    api_key_prefix: Mapped[str | None] = mapped_column(String(20))
+    api_key_issued_at: Mapped[datetime | None] = mapped_column(DateTime)
+
+    monthly_quota: Mapped[int] = mapped_column(Integer, default=50000)
+    usage_count: Mapped[int] = mapped_column(Integer, default=0)
+    usage_period_start: Mapped[date | None] = mapped_column(Date)
+
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime, server_default=func.now(), onupdate=func.now()
+    )
+
+
 class IngestionJob(Base):
     __tablename__ = "ingestion_jobs"
 
