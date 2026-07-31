@@ -18,6 +18,11 @@ export async function GET(
     urls = [
       SITE_URL,
       `${SITE_URL}/search`,
+      `${SITE_URL}/api-access`,
+      `${SITE_URL}/blog`,
+      `${SITE_URL}/terms`,
+      `${SITE_URL}/privacy`,
+      `${SITE_URL}/refunds`,
       ...STATES.map((s) => `${SITE_URL}/state/${s.code.toLowerCase()}`),
     ];
   } else {
