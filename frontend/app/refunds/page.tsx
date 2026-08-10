@@ -6,6 +6,7 @@ export const metadata: Metadata = {
   title: "Refund & Cancellation Policy",
   description:
     "How to cancel a YoTruck API subscription and when refunds are available.",
+  alternates: { canonical: "/refunds" },
 };
 
 export default function RefundsPage() {

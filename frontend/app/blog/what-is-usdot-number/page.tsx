@@ -1,13 +1,13 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { SITE_URL } from "@/lib/site";
 
 export const metadata: Metadata = {
   title: "What is a USDOT Number? Complete Guide",
   description:
     "A USDOT number is the FMCSA's unique identifier for commercial vehicle operators. Learn who needs one, how it differs from an MC number, and how to look one up.",
+  alternates: { canonical: "/blog/what-is-usdot-number" },
 };
-
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.yotruck.com";
 
 const FAQS = [
   {

@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import CarrierCard from "@/components/CarrierCard";
 import { searchCarriers } from "@/lib/api";
+import { SITE_URL } from "@/lib/site";
 import { STATES, stateByCode } from "@/lib/states";
 
 export const revalidate = 86400;
@@ -16,16 +17,19 @@ export function generateStaticParams(): { state: string }[] {
   return STATES.map((s) => ({ state: s.code.toLowerCase() }));
 }
 
-export function generateMetadata({ params }: StatePageProps): Metadata {
+export function generateMetadata({ params, searchParams }: StatePageProps): Metadata {
   const info = stateByCode(params.state);
   if (!info) return { title: "State not found" };
+  // Self-referencing canonical, page number included: page 2 is a different set
+  // of carriers, not a duplicate of page 1, so it canonicalizes to itself.
+  const page = Math.max(1, Number(searchParams?.page) || 1);
+  const path = `/state/${info.code.toLowerCase()}`;
   return {
     title: `Trucking Companies in ${info.name} — Carrier Directory`,
     description: `Browse FMCSA-registered motor carriers based in ${info.name}. Fleet sizes, safety ratings, USDOT and MC numbers, contact details.`,
+    alternates: { canonical: page > 1 ? `${path}?page=${page}` : path },
   };
 }
-
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.yotruck.com";
 
 export default async function StatePage({ params, searchParams }: StatePageProps) {
   const info = stateByCode(params.state);

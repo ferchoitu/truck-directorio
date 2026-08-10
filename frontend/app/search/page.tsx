@@ -4,11 +4,6 @@ import CarrierCard from "@/components/CarrierCard";
 import SearchBar from "@/components/SearchBar";
 import { searchCarriers } from "@/lib/api";
 
-export const metadata: Metadata = {
-  title: "Search Carriers",
-  description: "Search FMCSA motor carriers by USDOT number, MC number, or company name.",
-};
-
 interface SearchPageProps {
   searchParams: {
     q?: string;
@@ -16,6 +11,24 @@ interface SearchPageProps {
     operation_type?: string;
     safety_rating?: string;
     page?: string;
+  };
+}
+
+export function generateMetadata({ searchParams }: SearchPageProps): Metadata {
+  // Every query string is a new URL over the same 2.2M carriers. Result pages
+  // stay out of the index — the carrier profiles themselves are what should
+  // rank — while the bare form page is indexable and self-canonical.
+  const isResults = Boolean(
+    searchParams.q ||
+      searchParams.state ||
+      searchParams.operation_type ||
+      searchParams.safety_rating,
+  );
+  return {
+    title: "Search Carriers",
+    description: "Search FMCSA motor carriers by USDOT number, MC number, or company name.",
+    alternates: { canonical: "/search" },
+    ...(isResults ? { robots: { index: false, follow: true } } : {}),
   };
 }
 

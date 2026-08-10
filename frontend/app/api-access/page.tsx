@@ -6,6 +6,7 @@ export const metadata: Metadata = {
   title: "Carrier Data API — 2.2M FMCSA Carriers",
   description:
     "Plug FMCSA carrier data into your stack: registrations, SMS safety measures, inspections, and violations for 2.2M+ US motor carriers via REST API.",
+  alternates: { canonical: "/api-access" },
 };
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";

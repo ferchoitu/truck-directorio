@@ -13,6 +13,7 @@ import {
   type CarrierDetail,
   type CarrierSafety,
 } from "@/lib/api";
+import { SITE_URL } from "@/lib/site";
 import { stateByCode } from "@/lib/states";
 
 // 30-day ISR. This is the only route where revalidation cost matters: there are
@@ -21,8 +22,6 @@ import { stateByCode } from "@/lib/states";
 // against data that only moves when FMCSA publishes — the census is monthly and
 // SMS is a monthly snapshot. Nothing was gaining freshness; it was just churn.
 export const revalidate = 2592000;
-
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.yotruck.com";
 const CLAIM_CONTACT = "mailto:nuclealabs@gmail.com?subject=Claim%20profile%20USDOT%20";
 
 interface CarrierPageProps {
@@ -98,7 +97,13 @@ export default async function CarrierPage({ params }: CarrierPageProps) {
   const name = carrier.legal_name ?? `USDOT ${carrier.usdot_number}`;
   const answer = atomicAnswer(carrier, name, safety);
   const usdot = carrier.usdot_number;
-  const stateName = carrier.state ? stateByCode(carrier.state)?.name ?? carrier.state : null;
+  // FMCSA census data carries Canadian provinces and Mexican states (AB, ON, SO,
+  // CH…) alongside US codes, but /state/[state] only builds the 54 US ones. Only
+  // link out when the code has a real page behind it, otherwise the profile
+  // feeds Google a 404.
+  const stateInfo = carrier.state ? stateByCode(carrier.state) : undefined;
+  const stateName = stateInfo?.name ?? carrier.state ?? null;
+  const statePath = stateInfo ? `/state/${stateInfo.code.toLowerCase()}` : null;
 
   const officialLinks = [
     {
@@ -163,19 +168,19 @@ export default async function CarrierPage({ params }: CarrierPageProps) {
       "@type": "BreadcrumbList",
       itemListElement: [
         { "@type": "ListItem", position: 1, name: "Home", item: SITE_URL },
-        ...(carrier.state
+        ...(statePath
           ? [
               {
                 "@type": "ListItem",
                 position: 2,
                 name: stateName,
-                item: `${SITE_URL}/state/${carrier.state.toLowerCase()}`,
+                item: `${SITE_URL}${statePath}`,
               },
             ]
           : []),
         {
           "@type": "ListItem",
-          position: carrier.state ? 3 : 2,
+          position: statePath ? 3 : 2,
           name,
           item: `${SITE_URL}/carrier/${carrier.slug ?? params.slug}`,
         },
@@ -201,12 +206,16 @@ export default async function CarrierPage({ params }: CarrierPageProps) {
 
       <nav className="text-sm text-zinc-500">
         <Link href="/" className="hover:text-zinc-900">Home</Link>
-        {carrier.state && (
+        {stateName && (
           <>
             {" / "}
-            <Link href={`/state/${carrier.state.toLowerCase()}`} className="hover:text-zinc-900">
-              {stateName}
-            </Link>
+            {statePath ? (
+              <Link href={statePath} className="hover:text-zinc-900">
+                {stateName}
+              </Link>
+            ) : (
+              <span>{stateName}</span>
+            )}
           </>
         )}
         {" / "}

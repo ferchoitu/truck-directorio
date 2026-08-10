@@ -5,6 +5,7 @@ export const metadata: Metadata = {
   title: "Blog — FMCSA Data Guides",
   description:
     "Guides to understanding FMCSA data: USDOT numbers, safety ratings, BASIC scores, and how to vet trucking companies.",
+  alternates: { canonical: "/blog" },
 };
 
 const POSTS = [

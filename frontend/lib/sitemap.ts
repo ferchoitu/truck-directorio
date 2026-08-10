@@ -1,8 +1,6 @@
-export const SITEMAP_PAGE_SIZE = 50_000;
+export { SITE_URL } from "./site";
 
-// Sitemap URLs must always use the public canonical domain. Do not let a stale
-// deployment environment variable leak the Vercel preview domain into Google.
-export const SITE_URL = "https://www.yotruck.com";
+export const SITEMAP_PAGE_SIZE = 50_000;
 
 export function xmlEscape(value: string): string {
   return value

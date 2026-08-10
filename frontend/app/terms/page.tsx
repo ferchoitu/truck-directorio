@@ -6,6 +6,7 @@ export const metadata: Metadata = {
   title: "Terms of Service",
   description:
     "The terms governing use of the YoTruck carrier directory and Carrier Data API.",
+  alternates: { canonical: "/terms" },
 };
 
 export default function TermsPage() {

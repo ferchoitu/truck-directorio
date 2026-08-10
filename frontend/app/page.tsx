@@ -1,12 +1,16 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import SearchBar from "@/components/SearchBar";
 import SectionLabel from "@/components/SectionLabel";
 import { getStateCounts, getStats, getUpdates } from "@/lib/api";
+import { SITE_URL } from "@/lib/site";
 import { STATES, stateByCode } from "@/lib/states";
 
 export const revalidate = 3600;
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.yotruck.com";
+export const metadata: Metadata = {
+  alternates: { canonical: "/" },
+};
 
 const TRENDING = [
   { label: "USDOT 54283 → Swift Transportation", href: "/search?q=54283" },
@@ -36,11 +40,14 @@ const FAQS = [
 ];
 
 export default async function HomePage() {
-  const [stats, states, updates] = await Promise.all([
+  const [stats, stateCounts, updates] = await Promise.all([
     getStats(),
     getStateCounts(),
     getUpdates(),
   ]);
+  // The census also counts Canadian and Mexican registrations; only US codes
+  // have a /state/[state] page, so anything else would link into a 404.
+  const states = stateCounts?.filter((s) => stateByCode(s.state)) ?? null;
 
   const alertPct =
     stats && stats.scored_carriers > 0

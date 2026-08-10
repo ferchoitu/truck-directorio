@@ -6,6 +6,7 @@ export const metadata: Metadata = {
   title: "Privacy Policy",
   description:
     "What data YoTruck collects, how payment data is handled, and how to exercise your privacy rights.",
+  alternates: { canonical: "/privacy" },
 };
 
 export default function PrivacyPage() {
