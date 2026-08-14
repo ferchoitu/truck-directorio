@@ -28,8 +28,17 @@ interface CarrierPageProps {
   params: { slug: string };
 }
 
+// How many profiles to bake at build time. dynamicParams defaults to true, so
+// this is purely a head start: any slug not listed here is rendered on the
+// first request and then cached for the 30 days above, which is identical to
+// what a prerendered page does after its first revalidate. Lowering it costs
+// one slow response per profile and nothing in SEO — but it is the difference
+// between a 5-minute and an hour-long build on a single vCPU.
+const PRERENDER_COUNT = Number(process.env.PRERENDER_CARRIER_COUNT ?? 10_000);
+
 export async function generateStaticParams(): Promise<{ slug: string }[]> {
-  const carriers = await getTopCarriers(10_000);
+  if (PRERENDER_COUNT <= 0) return [];
+  const carriers = await getTopCarriers(PRERENDER_COUNT);
   if (!carriers) return [];
   return carriers
     .filter((c): c is typeof c & { slug: string } => c.slug !== null)

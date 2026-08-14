@@ -1,0 +1,56 @@
+[Unit]
+Description=YoTruck API (FastAPI/uvicorn)
+Documentation=https://www.yotruck.com/api-access
+After=network.target postgresql.service
+Requires=postgresql.service
+
+[Service]
+Type=exec
+User=yotruck
+Group=yotruck
+WorkingDirectory=/srv/yotruck/backend
+EnvironmentFile=/srv/yotruck/backend/.env
+
+# Bound to loopback on purpose: nginx is the only thing that may reach it.
+#
+# UVICORN_WORKERS comes from backend/.env — 1 on a KVM 1, 2 on a KVM 2. Match
+# it to the vCPU count and no higher: uvicorn is async and this workload is I/O
+# bound on Postgres, so extra workers buy nothing and each one is a full copy
+# of the process. On a single vCPU they would just context-switch against each
+# other, and against the Node process sharing the same core.
+#
+# Note this also multiplies the census updater: ENABLE_UPDATER starts the loop
+# in *every* worker, so 2 workers means 2 concurrent daily pulls. The upserts
+# make that harmless but wasteful — one more reason not to raise it casually.
+ExecStart=/srv/yotruck/backend/.venv/bin/uvicorn app.main:app \
+    --host 127.0.0.1 \
+    --port 8000 \
+    --workers ${UVICORN_WORKERS} \
+    --proxy-headers \
+    --forwarded-allow-ips=127.0.0.1
+
+Restart=on-failure
+RestartSec=5
+# The daily census updater runs inside this process (ENABLE_UPDATER in .env),
+# so a restart loop would re-trigger it. Back off rather than hammer.
+StartLimitIntervalSec=300
+StartLimitBurst=5
+
+# Hardening. The process needs to read its own tree and talk to Postgres over
+# a unix socket / loopback, nothing else.
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/srv/yotruck/backend
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=yotruck-api
+
+[Install]
+WantedBy=multi-user.target

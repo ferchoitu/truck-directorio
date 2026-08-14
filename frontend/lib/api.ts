@@ -1,4 +1,11 @@
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
+// Every export in this module is called from a Server Component or a route
+// handler — CarrierCard and Sparkline import types from here, never functions.
+// So on the VPS this can point at uvicorn on loopback: SSR and ISR skip nginx,
+// TLS and the public network entirely. INTERNAL_API_URL is deliberately not
+// NEXT_PUBLIC_, which keeps it out of the browser bundle and out of the
+// customer-facing curl example in ClaimKey.
+const API_URL =
+  process.env.INTERNAL_API_URL ?? process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
 export interface CarrierSummary {
   usdot_number: string;

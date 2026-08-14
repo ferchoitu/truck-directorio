@@ -9,6 +9,11 @@ __pycache__/
 .env.local
 .env*.local
 
+# Holds the Hostinger API token in its env block — the desktop app does not
+# inherit shell exports, so the value has to live in a file rather than in
+# ~/.zshrc. Never commit it.
+.claude/settings.local.json
+
 # Node
 node_modules/
 .next/

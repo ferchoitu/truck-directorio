@@ -65,7 +65,10 @@ class SafetyScore(Base):
         ForeignKey("carriers.id", ondelete="CASCADE"), index=True
     )
     basic_category: Mapped[str | None] = mapped_column(String(100))
-    score: Mapped[Decimal | None] = mapped_column(Numeric(5, 2))
+    # (8,2), not (5,2): SMS utilization-adjusted measures exceed 999.99 for
+    # tiny fleets, and the narrower type made the monthly reingest overflow
+    # (migration 0005).
+    score: Mapped[Decimal | None] = mapped_column(Numeric(8, 2))
     percentile: Mapped[int | None] = mapped_column(Integer)
     alert_status: Mapped[str | None] = mapped_column(String(20))
     measured_date: Mapped[date | None] = mapped_column(Date)

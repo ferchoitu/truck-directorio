@@ -1,0 +1,41 @@
+[Unit]
+Description=YoTruck web (Next.js)
+After=network.target yotruck-api.service
+# Server components fetch the API on every ISR regeneration, so the web tier is
+# useless without it — but it is Wants, not Requires: a brief API blip should
+# degrade individual pages, not take the whole site down.
+Wants=yotruck-api.service
+
+[Service]
+Type=exec
+User=yotruck
+Group=yotruck
+WorkingDirectory=/srv/yotruck/frontend
+EnvironmentFile=/srv/yotruck/frontend/.env.production.local
+
+Environment=NODE_ENV=production
+Environment=PORT=3000
+Environment=HOSTNAME=127.0.0.1
+ExecStart=/usr/bin/npm run start
+
+Restart=on-failure
+RestartSec=5
+
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+# .next/cache holds the ISR payloads. Next writes there at runtime every time a
+# revalidate window expires, so it cannot be read-only.
+ReadWritePaths=/srv/yotruck/frontend/.next
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=yotruck-web
+
+[Install]
+WantedBy=multi-user.target
